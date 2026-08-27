@@ -1,31 +1,37 @@
-import re
-from tokenizer import SimpleTokenizerV1
+from importlib.metadata import version
+from dataset import *
+import tiktoken
+import torch
 
-with open("data/the-verdict.txt", "r", encoding="utf8") as f:
+vocab_size = 50257
+output_dim = 256
+max_length = 4
+batch_size = 8
+
+token_embedding_layer = torch.nn.Embedding(vocab_size, output_dim)
+pos_embedding_layer   = torch.nn.Embedding(vocab_size, output_dim) 
+
+tokenizer = tiktoken.get_encoding("gpt2")
+
+with open("data/the-verdict.txt", "r", encoding="utf-8") as f:
     raw_text = f.read()
 
-print("Total number of character:", len(raw_text))
+dataloader = create_dataloader_v1(raw_text, 
+                                  batch_size=batch_size, 
+                                  max_length=max_length,
+                                  stride=1, 
+                                  shuffle=False)
 
-preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', raw_text)
-preprocessed = [item for item in preprocessed if item.strip()]
+data_iter = iter(dataloader)
 
-all_words = sorted(set(preprocessed))
-all_words.extend(["<|endoftext|>", "<|unk|>"])
-vocab_size = len(all_words)
+inputs, targets = next(data_iter)
 
-vocab = {token:integer for integer,token in enumerate(all_words)}
+token_embeddings = token_embedding_layer(inputs)
+pos_embeddings = pos_embedding_layer(inputs)
 
-tokenizer = SimpleTokenizerV1(vocab=vocab) 
+print(token_embeddings.shape)
+print(pos_embeddings.shape)
 
-# text = ["My", "life"]
+input_embeddings = token_embeddings + pos_embeddings
 
-text = "It's not my time I'm not going"
-
-idx = tokenizer.encode(text)
-
-print(idx)
-
-tokens = tokenizer.decode(idx)
-
-print(tokens)
-
+print(input_embeddings.shape)
