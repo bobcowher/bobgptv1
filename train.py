@@ -29,11 +29,11 @@ context_length = batch.shape[1]
 #                             context_length=context_length,
 #                             dropout=0.1)
 
-attention = MultiHeadAttentionWrapper(d_in=d_in,
-                                      d_out=d_out,
-                                      context_length=context_length,
-                                      dropout=0.1,
-                                      num_heads=2)
+attention = MultiHeadAttention(d_in=d_in,
+                               d_out=d_out,
+                               context_length=context_length,
+                               dropout=0.1,
+                               num_heads=2)
 
 context_vec = attention(batch)
 
