@@ -133,7 +133,12 @@ class MultiHeadAttention(nn.Module):
         values = values.view(b, num_tokens, self.num_heads, self.head_dim)
         queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
 
-        attn_scores = queries @ keys.transpose(2, 1)
+        # Permute to (b, num_heads, num_tokens, head_dim) for multi-head attention
+        keys = keys.permute(0, 2, 1, 3)
+        queries = queries.permute(0, 2, 1, 3)
+        values = values.permute(0, 2, 1, 3)
+
+        attn_scores = queries @ keys.transpose(-2, -1)
         mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
 
         attn_scores.masked_fill_(mask_bool, -torch.inf)
@@ -143,7 +148,10 @@ class MultiHeadAttention(nn.Module):
                 )
         attn_weights = self.dropout(attn_weights)
 
-        context_vec = (attn_weights @ values).transpose(1, 2)
+        context_vec = attn_weights @ values
+
+        # Transpose back to (b, num_tokens, num_heads, head_dim)
+        context_vec = context_vec.permute(0, 2, 1, 3)
 
         context_vec = context_vec.contiguous().view(
                 b, num_tokens, self.d_out
