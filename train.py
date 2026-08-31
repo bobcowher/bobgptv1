@@ -24,13 +24,20 @@ batch = torch.stack((inputs, inputs), dim=0)
 
 context_length = batch.shape[1]
 
-attention = CausalAttention(d_in=d_in, 
-                            d_out=d_out,
-                            context_length=context_length,
-                            dropout=0.1)
+# attention = CausalAttention(d_in=d_in, 
+#                             d_out=d_out,
+#                             context_length=context_length,
+#                             dropout=0.1)
 
+attention = MultiHeadAttentionWrapper(d_in=d_in,
+                                      d_out=d_out,
+                                      context_length=context_length,
+                                      dropout=0.1,
+                                      num_heads=2)
 
 context_vec = attention(batch)
 
-print(query)
+# print(query)
 print(context_vec)
+print(context_vec.shape)
+
