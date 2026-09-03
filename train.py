@@ -3,7 +3,7 @@ from dataset import *
 import tiktoken
 import torch
 from attention import *
-from models import DummyGPTModel 
+from models import GPTModel, TransformerBlock 
 
 GPT_CONFIG_124M = {
         "vocab_size": 50257,
@@ -28,18 +28,24 @@ batch = torch.stack(batch, dim=0)
 
 torch.manual_seed(123)
 
-model = DummyGPTModel(cfg=GPT_CONFIG_124M)
+model = GPTModel(cfg=GPT_CONFIG_124M)
 
-logits = model(batch)
-print("Output shape:", logits.shape)
-# print(logits)
+out = model(batch)
+print("Input batch:\n", batch)
+print("\nOutput shape:", out.shape)
 
-single_embedding = logits[0][2]
-
-print(single_embedding.shape)
-print(single_embedding.mean())
+total_params = sum(p.numel() for p in model.parameters())
+print(f"Total number of parameters: {total_params:,}")
 
 
 
 
+# torch.manual_seed(123)
+# x = torch.rand(2, 4, 768)
+# block = TransformerBlock(GPT_CONFIG_124M)
+# output = block(x)
+#
+# print("Input shape: ", x.shape)
+# print("Output shape: ", output.shape)
+#
 
