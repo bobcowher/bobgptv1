@@ -8,52 +8,52 @@ from config import GPT_CONFIG_124M
 
 tokenizer = tiktoken.get_encoding("gpt2")
 
+file_path = "data/the-verdict.txt"
+with open(file_path, "r", encoding="utf-8") as file:
+    text_data = file.read()
+
+train_ratio = 0.90
+split_idx = int(train_ratio * len(text_data))
+train_data = text_data[:split_idx]
+val_data = text_data[split_idx:]
+
+train_loader = create_dataloader_v1(
+        train_data,
+        batch_size=2,
+        max_length=GPT_CONFIG_124M["context_length"],
+        stride=GPT_CONFIG_124M["context_length"],
+        drop_last=True,
+        shuffle=True,
+        num_workers=0
+        )
+
+val_loader = create_dataloader_v1(
+        val_data,
+        batch_size=2,
+        max_length=GPT_CONFIG_124M["context_length"],
+        stride=GPT_CONFIG_124M["context_length"],
+        drop_last=False,
+        shuffle=False,
+        num_workers=0
+        )
+
 torch.manual_seed(123)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = GPTModel(cfg=GPT_CONFIG_124M)
-model.eval()
+optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=0.0004, weight_decay=0.1
+        )
+model.to(device)
 
-start_context = "Every effort moves you"
+num_epochs = 50 
 
-inputs = torch.tensor([[16833, 3626, 6100],
-                        [40, 1107, 588]])
-targets = torch.tensor([[3626, 6100, 345 ],
-                        [1107, 588, 11311]])
+train_losses, val_losses, tokens_seen = train_model_simple(
+        model, train_loader, val_loader, optimizer, device,
+        num_epochs=num_epochs, eval_freq=5, eval_iter=5,
+        start_context="Every effort moves you", tokenizer=tokenizer
+        )
 
-with torch.no_grad():
-    logits = model(inputs)
-
-print(logits.shape)
-
-probas = torch.softmax(logits, dim=-1)
-print(probas.shape)
-
-token_ids = torch.argmax(probas, dim=-1, keepdim=True)
-print(token_ids.shape)
-print(token_ids)
-
-print(f"Targets batch 1: {token_ids_to_text(targets[0], tokenizer)}")
-print(f"Outputs batch 1: {token_ids_to_text(token_ids[0].flatten(), tokenizer)}")
-
-text_idx = 0
-target_probas_1 = probas[text_idx, [0, 1, 2], targets[text_idx]]
-print("Text 1:", target_probas_1)
-
-text_idx = 1
-target_probas_2 = probas[text_idx, [0, 1, 2], targets[text_idx]]
-print("Text 2:", target_probas_2)
-
-log_probas = torch.log(torch.cat((target_probas_1, target_probas_2)))
-print(log_probas)
-
-avg_log_probas = torch.mean(log_probas)
-print(avg_log_probas)
-
-# token_ids = generate_text_simple(
-#         model=model,
-#         idx=text_to_token_ids(start_context, tokenizer),
-#         max_new_tokens=10,
-#         context_size=GPT_CONFIG_124M["context_length"]
-#         )
-#
-# print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
+# epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
+# plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
