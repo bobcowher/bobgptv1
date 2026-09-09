@@ -2,7 +2,6 @@ from importlib.metadata import version
 from dataset import *
 import tiktoken
 import torch
-from attention import *
 from models import *
 from config import GPT_CONFIG_124M 
 
