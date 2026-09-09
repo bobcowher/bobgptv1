@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from attention import MultiHeadAttention
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
@@ -108,154 +107,61 @@ class TransformerBlock(nn.Module):
         return x
         
 
-def generate_text_simple(model, idx,
-                         max_new_tokens, context_size):
+class MultiHeadAttention(nn.Module):
 
-    for _ in range(max_new_tokens):
-        idx_cond = idx[:, -context_size:]
-        with torch.no_grad():
-            logits = model(idx_cond)
+    def __init__(self, d_in, d_out,
+                 context_length, dropout, num_heads, qkv_bias=False):
+        super().__init__()
 
-        logits = logits[:, -1, :] # grabs the last time step
-        probas = torch.softmax(logits, dim=-1)
-        idx_next = torch.argmax(probas, dim=-1, keepdim=True)
-        idx = torch.cat((idx, idx_next), dim=1)
+        assert (d_out % num_heads == 0), \
+                "d_out must be divisible by num_heads"
 
-    return idx
-
-
-def generate(model, idx, max_new_tokens, context_size,
-             temperature=0.0, top_k=None, eos_id=None):
-
-    for _ in range(max_new_tokens):
-        idx_cond = idx[:, -context_size:]
-        with torch.no_grad():
-            logits = model(idx_cond)
-
-        logits = logits[:, -1, :] # grabs the last time step
-
-        if top_k is not None:
-            top_logits, _ = torch.topk(logits, top_k)
-            min_val = top_logits[:, -1]
-            logits = torch.where(
-                    logits < min_val,
-                    torch.tensor(float('-inf')).to(logits.device),
-                    logits
-                    )
-        if temperature > 0.0:
-            logits = logits / temperature
-            probs = torch.softmax(logits, dim=-1)
-            idx_next = torch.multinomial(probs, num_samples=1)
-        else:
-            idx_next = torch.argmax(logits, dim=-1, keepdim=True)
-        if idx_next == eos_id:
-            break
-
-        idx = torch.cat((idx, idx_next), dim=1)
-
-    return idx
-
-def text_to_token_ids(text, tokenizer):
-    encoded = tokenizer.encode(text, allowed_special={'<|endoftext|>'})
-    encoded_tensor = torch.tensor(encoded).unsqueeze(0)
-    return encoded_tensor
-
-def token_ids_to_text(token_ids, tokenizer):
-    flat = token_ids.squeeze(0)
-    return tokenizer.decode(flat.tolist())
-
-def calc_loss_batch(input_batch, target_batch, model, device):
-    input_batch = input_batch.to(device)
-    target_batch = target_batch.to(device)
-
-    logits = model(input_batch)
-    loss = torch.nn.functional.cross_entropy(
-            logits.flatten(0, 1), target_batch.flatten()
-            )
-    return loss
-
-def calc_loss_loader(data_loader, model, device, num_batches=None):
-    total_loss = 0.
-
-    if len(data_loader) == 0:
-        return float("nan")
-    elif num_batches is None:
-        num_batches = len(data_loader)
-    else:
-        num_batches = min(num_batches, len(data_loader))
-
-    for i, (input_batch, target_batch) in enumerate(data_loader):
-        if i < num_batches:
-            loss = calc_loss_batch(
-                    input_batch, target_batch, model, device
-                    )
-            total_loss += loss.item()
-        else:
-            break
-    return total_loss / num_batches
-
-def train_model_simple(model, train_loader, val_loader,
-                       optimizer, device, num_epochs,
-                       eval_freq, eval_iter, start_context, tokenizer):
-
-    train_losses, val_losses, track_tokens_seen = [], [], []
-    tokens_seen, global_step = 0, -1
-
-    for epoch in range(num_epochs):
-        model.train()
-
-        for input_batch, target_batch in train_loader:
-            optimizer.zero_grad()
-            loss = calc_loss_batch(
-                    input_batch, target_batch, model, device
-                    )
-            loss.backward()
-            optimizer.step()
-            tokens_seen += input_batch.numel()
-            global_step += 1
-
-            if global_step % eval_freq == 0:
-                train_loss, val_loss = evaluate_model(
-                        model, train_loader, val_loader, device, eval_iter
-                        )
-                train_losses.append(train_loss)
-                val_losses.append(val_loss)
-                track_tokens_seen.append(tokens_seen)
-                print(f"Ep {epoch+1} (Step {global_step:06d}): "
-                      f"Train loss {train_loss:.3f}, "
-                      f"Val loss {val_loss:.3f}"
-                      )
-
-                generate_and_print_sample(
-                        model, tokenizer, device, start_context
-                        )
-
-    return train_losses, val_losses, track_tokens_seen
-
-
-def evaluate_model(model, train_loader, val_loader, device, eval_iter):
-    model.eval()
-
-    with torch.no_grad():
-        train_loss = calc_loss_loader(
-                train_loader, model, device, num_batches=eval_iter
+        self.d_out = d_out
+        self.num_heads = num_heads
+        self.head_dim = d_out // num_heads
+        self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_value = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.out_proj = nn.Linear(d_out, d_out)
+        self.dropout = nn.Dropout(dropout)
+        self.register_buffer(
+                "mask",
+                torch.triu(torch.ones(context_length, context_length),
+                           diagonal=1)
                 )
-        val_loss = calc_loss_loader(
-                val_loader, model, device, num_batches=eval_iter
-                )
-        model.train()
-        return train_loss, val_loss
 
-def generate_and_print_sample(model, tokenizer, device, start_context):
-    model.eval()
-    context_size = model.pos_emb.weight.shape[0]
-    encoded = text_to_token_ids(start_context, tokenizer).to(device)
-    with torch.no_grad():
-        token_ids = generate_text_simple(
-                model=model, idx=encoded,
-                max_new_tokens=50, context_size=context_size
-                )
-    decoded_text = token_ids_to_text(token_ids, tokenizer)
-    print(decoded_text.replace("\n", " "))
-    model.train()
+    def forward(self, x):
+        b, num_tokens, d_in = x.shape
+        keys = self.W_key(x)
+        queries = self.W_query(x)
+        values = self.W_value(x)
 
+        keys = keys.view(b, num_tokens, self.num_heads, self.head_dim)
+        values = values.view(b, num_tokens, self.num_heads, self.head_dim)
+        queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
+
+        # Permute to (b, num_heads, num_tokens, head_dim) for multi-head attention
+        keys = keys.permute(0, 2, 1, 3)
+        queries = queries.permute(0, 2, 1, 3)
+        values = values.permute(0, 2, 1, 3)
+
+        attn_scores = queries @ keys.transpose(-2, -1)
+        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
+
+        attn_scores.masked_fill_(mask_bool, -torch.inf)
+
+        attn_weights = torch.softmax(
+                attn_scores / keys.shape[-1]**0.5, dim=-1
+                )
+        attn_weights = self.dropout(attn_weights)
+
+        context_vec = attn_weights @ values
+
+        # Transpose back to (b, num_tokens, num_heads, head_dim)
+        context_vec = context_vec.permute(0, 2, 1, 3)
+
+        context_vec = context_vec.contiguous().view(
+                b, num_tokens, self.d_out
+                )
+        context_vec = self.out_proj(context_vec)
+        return context_vec

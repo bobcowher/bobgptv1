@@ -1,6 +1,6 @@
 import torch
 import tiktoken
-from models import *
+from models import GPTModel
 
 class LanguageModel:
 
@@ -31,18 +31,14 @@ class LanguageModel:
 
             for input_batch, target_batch in self.train_loader:
                 self.optimizer.zero_grad()
-                loss = calc_loss_batch(
-                        input_batch, target_batch, self.model, self.device
-                        )
+                loss = self.calc_loss_batch(input_batch, target_batch)
                 loss.backward()
                 self.optimizer.step()
                 tokens_seen += input_batch.numel()
                 global_step += 1
 
                 if global_step % eval_freq == 0:
-                    train_loss, val_loss = evaluate_model(
-                            self.model, self.train_loader, self.val_loader, self.device, eval_iter
-                            )
+                    train_loss, val_loss = self.evaluate_model(eval_iter)
                     train_losses.append(train_loss)
                     val_losses.append(val_loss)
                     track_tokens_seen.append(tokens_seen)
@@ -51,9 +47,7 @@ class LanguageModel:
                           f"Val loss {val_loss:.3f}"
                           )
 
-                    generate_and_print_sample(
-                            self.model, self.tokenizer, self.device, start_context
-                            )
+                    self.generate_and_print_sample(start_context)
 
         return train_losses, val_losses, track_tokens_seen
 
@@ -155,13 +149,13 @@ class LanguageModel:
     def generate_and_print_sample(self, start_context):
         self.model.eval()
         context_size = self.model.pos_emb.weight.shape[0]
-        encoded = text_to_token_ids(start_context, self.tokenizer).to(self.device)
+        encoded = self.text_to_token_ids(start_context, self.tokenizer).to(self.device)
         with torch.no_grad():
-            token_ids = generate_text_simple(
-                    model=self.model, idx=encoded,
+            token_ids = self.generate_text_simple(
+                    idx=encoded,
                     max_new_tokens=50, context_size=context_size
                     )
-        decoded_text = token_ids_to_text(token_ids, self.tokenizer)
+        decoded_text = self.token_ids_to_text(token_ids, self.tokenizer)
         print(decoded_text.replace("\n", " "))
         self.model.train()
 

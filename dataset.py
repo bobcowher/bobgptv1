@@ -40,3 +40,28 @@ def create_dataloader_v1(txt, batch_size=4, max_length=256,
 
     return dataloader
 
+
+def make_loaders(text, cfg, train_ratio=0.90, batch_size=2, num_workers=0):
+    split_idx = int(train_ratio * len(text))
+
+    train_loader = create_dataloader_v1(
+            text[:split_idx],
+            batch_size=batch_size,
+            max_length=cfg["context_length"],
+            stride=cfg["context_length"],
+            drop_last=True,
+            shuffle=True,
+            num_workers=num_workers
+            )
+
+    val_loader = create_dataloader_v1(
+            text[split_idx:],
+            batch_size=batch_size,
+            max_length=cfg["context_length"],
+            stride=cfg["context_length"],
+            drop_last=False,
+            shuffle=False,
+            num_workers=num_workers
+            )
+
+    return train_loader, val_loader
