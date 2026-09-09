@@ -35,20 +35,6 @@ class GPTModel(nn.Module):
         return logits
 
 
-class DummyTransformerBlock(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-
-    def forward(self, x):
-        return x
-
-class DummyLayerNorm(nn.Module):
-    def __init__(self, normalized_shape, eps=1e-5):
-        super().__init__()
-
-    def forward(self, x):
-        return x
-
 class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()
@@ -244,8 +230,6 @@ def train_model_simple(model, train_loader, val_loader,
                         model, tokenizer, device, start_context
                         )
 
-
-
     return train_losses, val_losses, track_tokens_seen
 
 
@@ -275,40 +259,3 @@ def generate_and_print_sample(model, tokenizer, device, start_context):
     print(decoded_text.replace("\n", " "))
     model.train()
 
-
-def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses):
-    fig, ax1 = plt.subplots(figsize=(5, 3))
-    ax1.plot(epochs_seen, train_losses, label="Training loss")
-    ax1.plot(
-    epochs_seen, val_losses, linestyle="-.", label="Validation loss"
-    )
-    ax1.set_xlabel("Epochs")
-    ax1.set_ylabel("Loss")
-
-    ax1.legend(loc="upper right")
-   
-    ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
-   
-    ax2 = ax1.twiny()
-    ax2.plot(tokens_seen, train_losses, alpha=0)
-   
-    ax2.set_xlabel("Tokens seen")
-   
-    fig.tight_layout()
-    plt.show()
-
-
-
-
-def print_gradients(model, x):
-    output = model(x)
-    target = torch.tensor([[0.]])
-
-    loss = nn.MSELoss()
-    loss = loss(output, target)
-
-    loss.backward()
-
-    for name, param in model.named_parameters():
-        if 'weight' in name:
-            print(f"{name} as gradient mean of {param.grad.abs().mean().item()}")
