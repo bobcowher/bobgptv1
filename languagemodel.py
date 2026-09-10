@@ -1,6 +1,7 @@
 import torch
 import tiktoken
 from models import GPTModel
+import os
 
 class LanguageModel:
 
@@ -19,6 +20,8 @@ class LanguageModel:
         self.val_loader  = val_loader
 
         self.tokenizer = tiktoken.get_encoding("gpt2")
+
+        self.checkpoint_path = "checkpoints/model.pth"
 
 
     def train(self, num_epochs, eval_freq, eval_iter, start_context):
@@ -49,7 +52,23 @@ class LanguageModel:
 
                     self.generate_and_print_sample(start_context)
 
+            self.save_the_model()
+
         return train_losses, val_losses, track_tokens_seen
+
+
+    def save_the_model(self):
+        os.makedirs("checkpoints", exist_ok=True)
+        torch.save(self.model.state_dict(), self.checkpoint_path)
+        print(f"Saved model checkpoint at {self.checkpoint_path}")
+
+
+    def load_the_model(self):
+        try:
+            self.model.load_state_dict(torch.load(self.checkpoint_path, map_location=self.device))
+            print(f"Successfully loaded weights from {self.checkpoint_path}")
+        except:
+            print(f"Failed to load weights from {self.checkpoint_path}")
 
 
     def generate_text_simple(self, idx,
