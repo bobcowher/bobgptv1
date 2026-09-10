@@ -1,11 +1,19 @@
 import torch
 import tiktoken
+import numpy as np
 from models import GPTModel
 import os
 
+
+# TEMP: GPT-2 weight loading helpers
+def assign(left, right):
+    if left.shape != right.shape:
+        raise ValueError(f"Shape mismatch. Left: {left.shape}, Right: {right.shape}")
+    return torch.nn.Parameter(torch.tensor(right))
+
 class LanguageModel:
 
-    def __init__(self, gpt_config, train_loader, val_loader):
+    def __init__(self, gpt_config, train_loader=None, val_loader=None):
 
         torch.manual_seed(123)
 
@@ -57,18 +65,25 @@ class LanguageModel:
         return train_losses, val_losses, track_tokens_seen
 
 
-    def save_the_model(self):
+
+    def save_the_model(self, checkpoint_path=None):
+        if checkpoint_path == None:
+            checkpoint_path = self.checkpoint_path
+
         os.makedirs("checkpoints", exist_ok=True)
-        torch.save(self.model.state_dict(), self.checkpoint_path)
-        print(f"Saved model checkpoint at {self.checkpoint_path}")
+        torch.save(self.model.state_dict(), checkpoint_path)
+        print(f"Saved model checkpoint at {checkpoint_path}")
 
 
-    def load_the_model(self):
+    def load_the_model(self, checkpoint_path=None):
+        if checkpoint_path == None:
+            checkpoint_path = self.checkpoint_path
+
         try:
-            self.model.load_state_dict(torch.load(self.checkpoint_path, map_location=self.device))
-            print(f"Successfully loaded weights from {self.checkpoint_path}")
+            self.model.load_state_dict(torch.load(checkpoint_path, map_location=self.device))
+            print(f"Successfully loaded weights from {checkpoint_path}")
         except:
-            print(f"Failed to load weights from {self.checkpoint_path}")
+            print(f"Failed to load weights from {checkpoint_path}")
 
 
     def generate_text_simple(self, idx,
@@ -178,3 +193,69 @@ class LanguageModel:
         print(decoded_text.replace("\n", " "))
         self.model.train()
 
+
+    # TEMP: load pretrained OpenAI GPT-2 weights from gpt_download.download_and_load_gpt2
+    def load_gpt_weights(self, params):
+        gpt = self.model
+
+        gpt.pos_emb.weight = assign(gpt.pos_emb.weight, params['wpe'])
+        gpt.tok_emb.weight = assign(gpt.tok_emb.weight, params['wte'])
+
+        for b in range(len(params["blocks"])):
+            q_w, k_w, v_w = np.split(
+                (params["blocks"][b]["attn"]["c_attn"])["w"], 3, axis=-1)
+            gpt.trf_blocks[b].att.W_query.weight = assign(
+                gpt.trf_blocks[b].att.W_query.weight, q_w.T)
+            gpt.trf_blocks[b].att.W_key.weight = assign(
+                gpt.trf_blocks[b].att.W_key.weight, k_w.T)
+            gpt.trf_blocks[b].att.W_value.weight = assign(
+                gpt.trf_blocks[b].att.W_value.weight, v_w.T)
+
+            q_b, k_b, v_b = np.split(
+                (params["blocks"][b]["attn"]["c_attn"])["b"], 3, axis=-1)
+            gpt.trf_blocks[b].att.W_query.bias = assign(
+                gpt.trf_blocks[b].att.W_query.bias, q_b)
+            gpt.trf_blocks[b].att.W_key.bias = assign(
+                gpt.trf_blocks[b].att.W_key.bias, k_b)
+            gpt.trf_blocks[b].att.W_value.bias = assign(
+                gpt.trf_blocks[b].att.W_value.bias, v_b)
+
+            gpt.trf_blocks[b].att.out_proj.weight = assign(
+                gpt.trf_blocks[b].att.out_proj.weight,
+                params["blocks"][b]["attn"]["c_proj"]["w"].T)
+            gpt.trf_blocks[b].att.out_proj.bias = assign(
+                gpt.trf_blocks[b].att.out_proj.bias,
+                params["blocks"][b]["attn"]["c_proj"]["b"])
+
+            gpt.trf_blocks[b].ff.layers[0].weight = assign(
+                gpt.trf_blocks[b].ff.layers[0].weight,
+                params["blocks"][b]["mlp"]["c_fc"]["w"].T)
+            gpt.trf_blocks[b].ff.layers[0].bias = assign(
+                gpt.trf_blocks[b].ff.layers[0].bias,
+                params["blocks"][b]["mlp"]["c_fc"]["b"])
+            gpt.trf_blocks[b].ff.layers[2].weight = assign(
+                gpt.trf_blocks[b].ff.layers[2].weight,
+                params["blocks"][b]["mlp"]["c_proj"]["w"].T)
+            gpt.trf_blocks[b].ff.layers[2].bias = assign(
+                gpt.trf_blocks[b].ff.layers[2].bias,
+                params["blocks"][b]["mlp"]["c_proj"]["b"])
+
+            gpt.trf_blocks[b].norm1.scale = assign(
+                gpt.trf_blocks[b].norm1.scale,
+                params["blocks"][b]["ln_1"]["g"])
+            gpt.trf_blocks[b].norm1.shift = assign(
+                gpt.trf_blocks[b].norm1.shift,
+                params["blocks"][b]["ln_1"]["b"])
+            gpt.trf_blocks[b].norm2.scale = assign(
+                gpt.trf_blocks[b].norm2.scale,
+                params["blocks"][b]["ln_2"]["g"])
+            gpt.trf_blocks[b].norm2.shift = assign(
+                gpt.trf_blocks[b].norm2.shift,
+                params["blocks"][b]["ln_2"]["b"])
+
+        gpt.final_norm.scale = assign(gpt.final_norm.scale, params["g"])
+        gpt.final_norm.shift = assign(gpt.final_norm.shift, params["b"])
+        gpt.out_head.weight = assign(gpt.out_head.weight, params["wte"])
+
+        gpt.to(self.device)
+        print("Loaded pretrained GPT-2 weights")
