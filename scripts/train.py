@@ -1,3 +1,9 @@
+import sys
+from pathlib import Path
+
+# Make the project root importable when run as scripts/<name>.py
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from dataset import *
 from config import GPT_CONFIG_124M 
 from languagemodel import LanguageModel

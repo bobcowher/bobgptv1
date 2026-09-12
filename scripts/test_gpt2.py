@@ -1,12 +1,13 @@
+import sys
+from pathlib import Path
+
+# Make the project root importable when run as scripts/<name>.py
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from dataset import *
 from config import GPT_CONFIG_124M 
 from languagemodel import LanguageModel
-from gpt_download import download_and_load_gpt2
-
-settings, params = download_and_load_gpt2(
-        model_size="124M", models_dir="gpt2"
-        )
-
+# from gpt_download import download_and_load_gpt2
 
 model_configs = {
 "gpt2-small (124M)": {"emb_dim": 768, "n_layers": 12, "n_heads": 12},
@@ -24,8 +25,6 @@ NEW_CONFIG.update({"qkv_bias": True})
 
 gpt = LanguageModel(gpt_config=NEW_CONFIG)
 gpt.model.eval()
-gpt.load_gpt_weights(params=params) 
-gpt.save_the_model("checkpoints/gpt.pth")
+gpt.load_the_model("checkpoints/gpt.pth")
 
-
-gpt.generate_and_print_sample(start_context="Every effort moves you")
+gpt.generate_and_print_sample(start_context="Hello. How's your day going? ")
