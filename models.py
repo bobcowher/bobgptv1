@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
 
 class GPTModel(nn.Module):
     def __init__(self, cfg):
