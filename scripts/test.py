@@ -4,23 +4,11 @@ from pathlib import Path
 # Make the project root importable when run as scripts/<name>.py
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dataset import *
 from config import GPT_CONFIG_124M 
 from languagemodel import LanguageModel
 
 
-file_path = "data/the-verdict.txt"
-with open(file_path, "r", encoding="utf-8") as file:
-    text_data = file.read()
-
-train_loader, val_loader = make_loaders(text_data, GPT_CONFIG_124M)
-
-
-num_epochs = 50 
-
-model = LanguageModel(gpt_config=GPT_CONFIG_124M, 
-                      train_loader=train_loader, 
-                      val_loader=val_loader)
+model = LanguageModel(gpt_config=GPT_CONFIG_124M)
 
 model.load_the_model()
 
