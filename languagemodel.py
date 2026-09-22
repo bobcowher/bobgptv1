@@ -1,6 +1,7 @@
 import torch
 import tiktoken
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 from models import GPTModel
 import os
 
@@ -36,31 +37,40 @@ class LanguageModel:
 
         train_losses, val_losses, track_tokens_seen = [], [], []
         tokens_seen, global_step = 0, -1
+        writer = SummaryWriter(log_dir="runs")
 
-        for epoch in range(num_epochs):
-            self.model.train()
+        try:
+            for epoch in range(num_epochs):
+                self.model.train()
 
-            for input_batch, target_batch in self.train_loader:
-                self.optimizer.zero_grad()
-                loss = self.calc_loss_batch(input_batch, target_batch)
-                loss.backward()
-                self.optimizer.step()
-                tokens_seen += input_batch.numel()
-                global_step += 1
+                for input_batch, target_batch in self.train_loader:
+                    self.optimizer.zero_grad()
+                    loss = self.calc_loss_batch(input_batch, target_batch)
+                    loss.backward()
+                    self.optimizer.step()
+                    tokens_seen += input_batch.numel()
+                    global_step += 1
+                    writer.add_scalar("loss/train_batch", loss.item(), global_step)
 
-                if global_step % eval_freq == 0:
-                    train_loss, val_loss = self.evaluate_model(eval_iter)
-                    train_losses.append(train_loss)
-                    val_losses.append(val_loss)
-                    track_tokens_seen.append(tokens_seen)
-                    print(f"Ep {epoch+1} (Step {global_step:06d}): "
-                          f"Train loss {train_loss:.3f}, "
-                          f"Val loss {val_loss:.3f}"
-                          )
+                    if global_step % eval_freq == 0:
+                        train_loss, val_loss = self.evaluate_model(eval_iter)
+                        train_losses.append(train_loss)
+                        val_losses.append(val_loss)
+                        track_tokens_seen.append(tokens_seen)
+                        writer.add_scalar("loss/train_eval", train_loss, global_step)
+                        writer.add_scalar("loss/val", val_loss, global_step)
+                        print(f"Ep {epoch+1} (Step {global_step:06d}): "
+                              f"Train loss {train_loss:.3f}, "
+                              f"Val loss {val_loss:.3f}"
+                              )
 
-                    self.generate_and_print_sample(start_context)
+                        sample = self.generate_and_print_sample(start_context)
+                        writer.add_text("samples/generated_text", sample, global_step)
+                        writer.flush()
 
-            self.save_the_model()
+                self.save_the_model()
+        finally:
+            writer.close()
 
         return train_losses, val_losses, track_tokens_seen
 
@@ -192,6 +202,7 @@ class LanguageModel:
         decoded_text = self.token_ids_to_text(token_ids, self.tokenizer)
         print(decoded_text.replace("\n", " "))
         self.model.train()
+        return decoded_text
 
 
     # TEMP: load pretrained OpenAI GPT-2 weights from gpt_download.download_and_load_gpt2
