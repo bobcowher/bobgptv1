@@ -1,3 +1,6 @@
+--extra-index-url https://download.pytorch.org/whl/cu132
+
 tiktoken
 tensorflow
 tensorboard
+torch==2.13.0+cu132
