@@ -12,7 +12,7 @@ from languagemodel import LanguageModel
 file_path = Path("data/pretrain/combined_corpus.txt")
 text_data = file_path.read_text(encoding="utf-8")
 
-train_loader, val_loader = make_loaders(text_data, GPT_CONFIG_124M)
+train_loader, val_loader = make_loaders(text_data, GPT_CONFIG_124M, batch_size=16)
 del text_data
 
 
