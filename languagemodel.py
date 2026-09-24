@@ -16,8 +16,6 @@ class LanguageModel:
 
     def __init__(self, gpt_config, train_loader=None, val_loader=None):
 
-        torch.manual_seed(123)
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = GPTModel(cfg=gpt_config)
         self.optimizer = torch.optim.AdamW(
@@ -208,9 +206,10 @@ class LanguageModel:
         context_size = self.model.pos_emb.weight.shape[0]
         encoded = self.text_to_token_ids(start_context, self.tokenizer).to(self.device)
         with torch.no_grad():
-            token_ids = self.generate_text_simple(
+            token_ids = self.generate(
                     idx=encoded,
-                    max_new_tokens=50, context_size=context_size
+                    max_new_tokens=50, context_size=context_size,
+                    temperature=0.8, top_k=40
                     )
         decoded_text = self.token_ids_to_text(token_ids, self.tokenizer)
         print(decoded_text.replace("\n", " "))
