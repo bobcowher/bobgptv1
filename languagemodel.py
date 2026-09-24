@@ -42,6 +42,7 @@ class LanguageModel:
         try:
             for epoch in range(num_epochs):
                 self.model.train()
+                epoch_loss_sum, epoch_batch_count = 0.0, 0
 
                 for input_batch, target_batch in self.train_loader:
                     self.optimizer.zero_grad()
@@ -50,6 +51,8 @@ class LanguageModel:
                     self.optimizer.step()
                     tokens_seen += input_batch.numel()
                     global_step += 1
+                    epoch_loss_sum += loss.item()
+                    epoch_batch_count += 1
                     writer.add_scalar("loss/train_batch", loss.item(), global_step)
 
                     if global_step % eval_freq == 0:
@@ -67,6 +70,16 @@ class LanguageModel:
                         sample = self.generate_and_print_sample(start_context)
                         writer.add_text("samples/generated_text", sample, global_step)
                         writer.flush()
+
+                epoch_train_loss = epoch_loss_sum / epoch_batch_count
+                _, epoch_val_loss = self.evaluate_model(eval_iter)
+                writer.add_scalar("loss/epoch_train", epoch_train_loss, epoch + 1)
+                writer.add_scalar("loss/epoch_val", epoch_val_loss, epoch + 1)
+                print(f"Ep {epoch+1} done: "
+                      f"Epoch train loss {epoch_train_loss:.3f}, "
+                      f"Epoch val loss {epoch_val_loss:.3f}"
+                      )
+                writer.flush()
 
                 self.save_the_model()
         finally:

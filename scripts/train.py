@@ -16,7 +16,7 @@ train_loader, val_loader = make_loaders(text_data, GPT_CONFIG_124M)
 del text_data
 
 
-num_epochs = 1
+num_epochs = 10
 
 model = LanguageModel(gpt_config=GPT_CONFIG_124M, 
                       train_loader=train_loader, 
