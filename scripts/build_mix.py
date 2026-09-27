@@ -48,6 +48,16 @@ def record_text(record: dict) -> str:
     return record["text"]
 
 
+def encode(tokenizer, texts: list[str], eot: int, batch: int = 10_000) -> list[np.ndarray]:
+    """Token ids per document, EOT-terminated, as uint16 arrays (Python int lists won't fit in RAM)."""
+    docs = []
+    for start in range(0, len(texts), batch):
+        for ids in tokenizer.encode_ordinary_batch(texts[start:start + batch]):
+            ids.append(eot)
+            docs.append(np.array(ids, dtype=np.uint16))
+    return docs
+
+
 def chunk(text: str, chunk_chars: int) -> list[str]:
     parts = []
     while len(text) > chunk_chars:
@@ -91,13 +101,16 @@ def build(mix_name: str) -> None:
     summary = {}
     for source in mix["sources"]:
         name, repeat = source["name"], source.get("repeat", 1)
+        # A big source can take a smaller val share so the full-val pass stays fast.
+        val_fraction = source.get("val_fraction", mix["val_fraction"])
         units = list(load_units(name, mix["chunk_chars"]))
-        val_texts = [text for unit_id, text in units if is_val(unit_id, mix["val_fraction"])]
-        train_texts = [text for unit_id, text in units if not is_val(unit_id, mix["val_fraction"])]
+        val_texts = [text for unit_id, text in units if is_val(unit_id, val_fraction)]
+        train_texts = [text for unit_id, text in units if not is_val(unit_id, val_fraction)]
+        del units
 
         # Val is never repeated: it measures the data, not the mix weights.
-        val_tokens = [ids + [eot] for ids in tokenizer.encode_ordinary_batch(val_texts)]
-        train_tokens = [ids + [eot] for ids in tokenizer.encode_ordinary_batch(train_texts)]
+        val_tokens = encode(tokenizer, val_texts, eot)
+        train_tokens = encode(tokenizer, train_texts, eot)
         splits["val"].extend(val_tokens)
         splits["train"].extend(train_tokens * repeat)
 
@@ -118,8 +131,9 @@ def build(mix_name: str) -> None:
     for split, docs in splits.items():
         # Shuffle document order so no source sits in one long contiguous run.
         order = rng.permutation(len(docs))
-        tokens = np.fromiter((t for i in order for t in docs[i]), dtype=np.uint16)
-        tokens.tofile(out_dir / f"{split}.bin")
+        with (out_dir / f"{split}.bin").open("wb") as f:
+            for i in order:
+                docs[i].tofile(f)
 
     manifest = {
         "mix": mix,

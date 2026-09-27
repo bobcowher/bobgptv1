@@ -1,0 +1,11 @@
+{
+  "description": "pretrain_v1 + a 200M-token FineWeb-Edu slice + python_qa (upsampled). Books/python_docs val units match pretrain_v1.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "books", "repeat": 1},
+    {"name": "python_docs", "repeat": 1},
+    {"name": "fineweb_edu", "repeat": 1, "val_fraction": 0.01},
+    {"name": "python_qa", "repeat": 5}
+  ]
+}

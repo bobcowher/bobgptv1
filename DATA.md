@@ -19,7 +19,8 @@ The pipeline is **sources → mix → build → train**:
 python scripts/prepare_public_domain_corpus.py   # -> data/sources/books/
 python scripts/prepare_python_corpus.py          # -> data/sources/python_docs/
 python scripts/generate_python_qa.py             # -> data/sources/python_qa/
-python scripts/build_mix.py pretrain_v1          # -> data/build/pretrain_v1/
+python scripts/prepare_fineweb_edu.py            # -> data/sources/fineweb_edu/
+python scripts/build_mix.py pretrain_v2          # -> data/build/pretrain_v2/
 scripts/sync_data.sh                             # push data/ to the lab box
 ```
 
@@ -60,6 +61,8 @@ to add to them.
 ```
 
 - `repeat` upsamples a source in train (integer copies). Val is never repeated.
+- A source can set its own `val_fraction`. FineWeb-Edu uses 0.01 so its val
+  stays ~2M tokens and the full-val pass each epoch stays short.
 - **Train/val split:** a unit goes to val when `sha256(unit id)` lands in the
   bottom `val_fraction` of 1000 buckets. The split depends only on ids, so
   adding documents never moves existing ones between train and val.
@@ -68,8 +71,10 @@ to add to them.
   whole books would put 2-3 entire novels in val; hashing ~20K-character parts
   gives val prose from most books.
 - Phases (e.g. pretraining vs. mixing in Q&A late) are just different mixes over
-  the same sources. `pretrain_v1` doesn't use `python_qa` yet. Adding
-  `{"name": "python_qa", "repeat": N}` puts it in the block.
+  the same sources. `pretrain_v1` is books + python_docs; `pretrain_v2` adds
+  FineWeb-Edu and `python_qa` (repeat 5). Because the split depends only on
+  ids, books/python_docs val units are identical in both, so a v2 model can be
+  scored on `build/pretrain_v1/val.bin` for a like-for-like comparison.
 
 ## Sources
 
@@ -94,6 +99,16 @@ tests and vendored or generated material, rejects unparseable Python, and
 removes exact duplicates. `provenance.json` records repositories, revisions,
 archive hashes and rejection counts. `licenses/` keeps every upstream license.
 Keep both when redistributing.
+
+### fineweb_edu: educational web text
+
+A ~200M-token slice of FineWeb-Edu `sample-10BT`
+(<https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu>, ODC-By 1.0):
+Common Crawl pages filtered for educational value. The script downloads one
+~750M-token parquet shard (cached by `huggingface_hub`) and keeps documents
+whose id hashes into the requested fraction, so reruns are identical.
+`--tokens` and `--shard` control size and which shard. Records keep url and
+dump for attribution.
 
 ### python_qa: synthetic Python Q&A
 
