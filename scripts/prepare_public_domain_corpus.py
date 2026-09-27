@@ -6,6 +6,9 @@ book, the script reads its RDF catalog record and requires the exact rights
 statement "Public domain in the USA.".  Gutenberg's header and license footer
 are removed from the training copy; source URLs and content hashes are kept in
 provenance.json.
+
+Output is data/sources/books/gutenberg.jsonl, one record per book, ready for
+scripts/build_mix.py.
 """
 
 from __future__ import annotations
@@ -100,22 +103,10 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def rebuild_combined(output_dir: Path) -> None:
-    python_path = output_dir / "python_corpus.txt"
-    literature_path = output_dir / "corpus.txt"
-    if not python_path.exists() or not literature_path.exists():
-        return
-    literature = literature_path.read_text(encoding="utf-8").rstrip()
-    python = python_path.read_text(encoding="utf-8").rstrip()
-    combined = literature + "\n\n\n===== PYTHON TRAINING MATERIAL =====\n\n\n" + python + "\n"
-    (output_dir / "combined_corpus.txt").write_text(combined, encoding="utf-8")
-
-
 def build(output_dir: Path) -> None:
-    books_dir = output_dir / "books"
-    books_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     provenance = []
-    corpus_parts = []
+    records = []
 
     for ebook_id, slug, title, author, publication_year, genre in SOURCES:
         catalog_url = f"https://www.gutenberg.org/ebooks/{ebook_id}"
@@ -134,11 +125,21 @@ def build(output_dir: Path) -> None:
 
         raw_text = fetch(text_url)
         cleaned = clean_gutenberg_text(raw_text, ebook_id)
-        filename = f"pg{ebook_id}_{slug}.txt"
-        destination = books_dir / filename
-        destination.write_text(cleaned, encoding="utf-8")
-
-        corpus_parts.append(f"{title}\nby {author}\n\n{cleaned.rstrip()}")
+        record_id = f"gutenberg/pg{ebook_id}_{slug}"
+        records.append(
+            {
+                "id": record_id,
+                "text": cleaned,
+                "metadata": {
+                    "title": title,
+                    "author": author,
+                    "publication_year": publication_year,
+                    "genre": genre,
+                    "gutenberg_id": ebook_id,
+                    "license": "Public domain in the USA",
+                },
+            }
+        )
         provenance.append(
             {
                 "gutenberg_id": ebook_id,
@@ -150,7 +151,7 @@ def build(output_dir: Path) -> None:
                 "jurisdiction": "United States",
                 "catalog_url": catalog_url,
                 "text_url": text_url,
-                "file": f"books/{filename}",
+                "id": record_id,
                 "raw_sha256": sha256(raw_text),
                 "clean_sha256": sha256(cleaned.encode("utf-8")),
                 "characters": len(cleaned),
@@ -158,8 +159,10 @@ def build(output_dir: Path) -> None:
         )
         print(f"{ebook_id:>5}  {len(cleaned):>9,} chars  {title}")
 
-    corpus = "\n\n\n===== NEXT BOOK =====\n\n\n".join(corpus_parts) + "\n"
-    (output_dir / "corpus.txt").write_text(corpus, encoding="utf-8")
+    with (output_dir / "gutenberg.jsonl").open("w", encoding="utf-8") as f:
+        for record in records:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    total_characters = sum(len(record["text"]) for record in records)
     (output_dir / "provenance.json").write_text(
         json.dumps(
             {
@@ -167,7 +170,7 @@ def build(output_dir: Path) -> None:
                 "rights_scope": "Catalog records verified as public domain in the USA; check the law in your jurisdiction.",
                 "source_policy": "https://www.gutenberg.org/policy/license",
                 "book_count": len(provenance),
-                "corpus_characters": len(corpus),
+                "corpus_characters": total_characters,
                 "sources": provenance,
             },
             indent=2,
@@ -176,8 +179,7 @@ def build(output_dir: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
-    rebuild_combined(output_dir)
-    print(f"\nWrote {len(provenance)} books and {len(corpus):,} characters to {output_dir}")
+    print(f"\nWrote {len(provenance)} books and {total_characters:,} characters to {output_dir}")
 
 
 def main() -> None:
@@ -185,7 +187,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "data" / "pretrain",
+        default=Path(__file__).resolve().parent.parent / "data" / "sources" / "books",
     )
     args = parser.parse_args()
     build(args.output_dir)

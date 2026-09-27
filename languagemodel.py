@@ -31,10 +31,11 @@ class LanguageModel:
         self.checkpoint_path = "checkpoints/model.pth"
 
 
-    def train(self, num_epochs, eval_freq, eval_iter, start_context):
+    def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2):
 
         train_losses, val_losses, track_tokens_seen = [], [], []
         tokens_seen, global_step = 0, -1
+        best_val_loss, epochs_without_improvement = float("inf"), 0
         writer = SummaryWriter(log_dir="runs")
 
         try:
@@ -70,7 +71,11 @@ class LanguageModel:
                         writer.flush()
 
                 epoch_train_loss = epoch_loss_sum / epoch_batch_count
-                _, epoch_val_loss = self.evaluate_model(eval_iter)
+                # Full val set: this number drives checkpointing and early stopping.
+                self.model.eval()
+                with torch.no_grad():
+                    epoch_val_loss = self.calc_loss_loader(data_loader=self.val_loader)
+                self.model.train()
                 writer.add_scalar("loss/epoch_train", epoch_train_loss, epoch + 1)
                 writer.add_scalar("loss/epoch_val", epoch_val_loss, epoch + 1)
                 print(f"Ep {epoch+1} done: "
@@ -79,7 +84,17 @@ class LanguageModel:
                       )
                 writer.flush()
 
-                self.save_the_model()
+                # Only keep the best weights; stop once val hasn't improved for `patience` epochs.
+                if epoch_val_loss < best_val_loss:
+                    best_val_loss, epochs_without_improvement = epoch_val_loss, 0
+                    self.save_the_model()
+                else:
+                    epochs_without_improvement += 1
+                    print(f"No val improvement for {epochs_without_improvement} epoch(s) "
+                          f"(best {best_val_loss:.3f})")
+                    if epochs_without_improvement >= patience:
+                        print(f"Early stopping after epoch {epoch+1}")
+                        break
         finally:
             writer.close()
 

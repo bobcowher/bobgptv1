@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """Generate a deterministic, Python-heavy educational Q&A dataset.
 
-The JSONL files use the widely supported ``messages`` schema.  Matching plain
-text files are also emitted so this repository's existing next-token trainer
-can read them without an instruction-tuning collator.
+Output is data/sources/python_qa/python_tutor.jsonl in the widely supported
+``messages`` schema. scripts/build_mix.py does the train/val split and renders
+messages to text with chat_template.py.
 """
 
 from __future__ import annotations
 
 import argparse
 import ast
-import hashlib
 import json
 import re
 from collections import Counter
@@ -268,58 +267,36 @@ def validate(examples: list[Example]) -> None:
                 raise ValueError(f"invalid Python in {example.id}: {error}") from error
 
 
-def split_name(example_id: str) -> str:
-    # A stable content-independent 90/10 split.
-    bucket = int(hashlib.sha256(example_id.encode()).hexdigest()[:8], 16) % 10
-    return "validation" if bucket == 0 else "train"
-
-
 def as_record(example: Example) -> dict:
     return {
-        "id": example.id,
-        "category": example.category,
+        "id": f"python_tutor/{example.id}",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": example.question},
             {"role": "assistant", "content": example.answer},
         ],
-        "license": "CC0-1.0",
-        "source": "synthetic: authored for llm_bobgpt",
+        "metadata": {
+            "category": example.category,
+            "license": "CC0-1.0",
+            "origin": "synthetic: authored for llm_bobgpt",
+        },
     }
-
-
-def as_text(example: Example) -> str:
-    return (
-        f"### System\n{SYSTEM_PROMPT}\n\n"
-        f"### Question\n{example.question.strip()}\n\n"
-        f"### Answer\n{example.answer.strip()}\n\n"
-        "### End"
-    )
 
 
 def write_dataset(output_dir: Path) -> None:
     examples = build_examples()
     validate(examples)
     output_dir.mkdir(parents=True, exist_ok=True)
-    splits = {
-        name: [example for example in examples if split_name(example.id) == name]
-        for name in ("train", "validation")
-    }
-
-    for name, items in splits.items():
-        jsonl = "\n".join(json.dumps(as_record(item), ensure_ascii=False) for item in items) + "\n"
-        text = "\n\n\n".join(as_text(item) for item in items) + "\n"
-        (output_dir / f"{name}.jsonl").write_text(jsonl, encoding="utf-8")
-        (output_dir / f"{name}.txt").write_text(text, encoding="utf-8")
+    jsonl = "\n".join(json.dumps(as_record(item), ensure_ascii=False) for item in examples) + "\n"
+    (output_dir / "python_tutor.jsonl").write_text(jsonl, encoding="utf-8")
 
     categories = Counter(example.category for example in examples)
     metadata = {
         "description": "Synthetic Python question/answer examples for educational instruction tuning.",
         "license": "CC0-1.0",
         "generator": "scripts/generate_python_qa.py",
-        "format": "JSON Lines with system/user/assistant messages; plain-text mirrors are also provided.",
+        "format": "JSON Lines with system/user/assistant messages.",
         "total_examples": len(examples),
-        "split_counts": {name: len(items) for name, items in splits.items()},
         "category_counts": dict(sorted(categories.items())),
     }
     (output_dir / "metadata.json").write_text(
@@ -333,7 +310,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "data" / "finetune",
+        default=Path(__file__).resolve().parent.parent / "data" / "sources" / "python_qa",
     )
     args = parser.parse_args()
     write_dataset(args.output_dir)

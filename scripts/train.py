@@ -9,11 +9,8 @@ from config import GPT_CONFIG_124M
 from languagemodel import LanguageModel
 
 
-file_path = Path("data/pretrain/combined_corpus.txt")
-text_data = file_path.read_text(encoding="utf-8")
-
-train_loader, val_loader = make_loaders(text_data, GPT_CONFIG_124M, batch_size=16)
-del text_data
+# A mix in mixes/, built into data/build/ by scripts/build_mix.py
+train_loader, val_loader = make_loaders("pretrain_v1", GPT_CONFIG_124M, batch_size=8)
 
 
 num_epochs = 10
@@ -25,4 +22,5 @@ model = LanguageModel(gpt_config=GPT_CONFIG_124M,
 model.train(num_epochs=num_epochs,
             eval_freq=1000,
             eval_iter=20,
-            start_context="Every effort moves you")
+            start_context="Every effort moves you",
+            patience=2)

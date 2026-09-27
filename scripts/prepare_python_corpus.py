@@ -5,6 +5,9 @@ The allowlist deliberately uses projects with permissive licenses. Archives
 are downloaded at exact Git commit IDs, relevant English documentation and
 Python files are selected, Python syntax is checked, exact duplicates are
 removed, and every upstream license is retained beside the corpus.
+
+Output is data/sources/python_docs/<project>.jsonl, one record per file, ready
+for scripts/build_mix.py.
 """
 
 from __future__ import annotations
@@ -236,33 +239,25 @@ def pep_is_open(text: str) -> bool:
     return "public domain" in lowered or "cc0-1.0" in lowered or "cc0 1.0" in lowered
 
 
-def document(source: Source, path: str, text: str) -> str:
-    language = "Python source" if path.endswith(".py") else "Technical documentation"
-    return (
-        "===== PYTHON CORPUS DOCUMENT =====\n"
-        f"Project: {source.name}\n"
-        f"File: {path}\n"
-        f"Type: {language}\n\n"
-        f"{text.rstrip()}"
-    )
-
-
-def rebuild_combined(output_dir: Path) -> None:
-    literature_path = output_dir / "corpus.txt"
-    python_path = output_dir / "python_corpus.txt"
-    if not literature_path.exists() or not python_path.exists():
-        return
-    literature = literature_path.read_text(encoding="utf-8").rstrip()
-    python = python_path.read_text(encoding="utf-8").rstrip()
-    combined = literature + "\n\n\n===== PYTHON TRAINING MATERIAL =====\n\n\n" + python + "\n"
-    (output_dir / "combined_corpus.txt").write_text(combined, encoding="utf-8")
+def document(source: Source, path: str, text: str) -> dict:
+    return {
+        "id": f"{source.name}/{path}",
+        "text": text,
+        "metadata": {
+            "project": source.name,
+            "file": path,
+            "type": "python_source" if path.endswith(".py") else "documentation",
+            "license": source.spdx_license,
+        },
+    }
 
 
 def build(output_dir: Path) -> None:
-    licenses_dir = output_dir / "python_licenses"
+    licenses_dir = output_dir / "licenses"
     licenses_dir.mkdir(parents=True, exist_ok=True)
     seen_hashes: set[str] = set()
-    documents: list[str] = []
+    document_count = 0
+    corpus_characters = 0
     provenance_sources = []
     total_rejections = {"syntax": 0, "duplicate": 0, "format_or_size": 0}
 
@@ -309,15 +304,18 @@ def build(output_dir: Path) -> None:
                 total_rejections["duplicate"] += 1
                 continue
             seen_hashes.add(content_hash)
-            rendered = document(source, path, text)
-            source_documents.append(rendered)
-            source_characters += len(rendered)
+            source_documents.append(document(source, path, text))
+            source_characters += len(text)
             if path.endswith(".py"):
                 source_python_files += 1
             else:
                 source_documentation_files += 1
 
-        documents.extend(source_documents)
+        with (output_dir / f"{source.name}.jsonl").open("w", encoding="utf-8") as f:
+            for record in source_documents:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        document_count += len(source_documents)
+        corpus_characters += source_characters
         provenance_sources.append(
             {
                 "name": source.name,
@@ -326,7 +324,7 @@ def build(output_dir: Path) -> None:
                 "archive_url": source.archive_url,
                 "archive_sha256": hashlib.sha256(archive).hexdigest(),
                 "license": source.spdx_license,
-                "license_file": f"python_licenses/{license_destination.name}",
+                "license_file": f"licenses/{license_destination.name}",
                 "kind": source.kind,
                 "documents": len(source_documents),
                 "python_files": source_python_files,
@@ -339,22 +337,19 @@ def build(output_dir: Path) -> None:
             f"{source_characters:>10,} characters"
         )
 
-    corpus = "\n\n\n".join(documents) + "\n"
-    (output_dir / "python_corpus.txt").write_text(corpus, encoding="utf-8")
     provenance = {
         "description": "Revision-pinned permissively licensed Python documentation and source code.",
         "selection_policy": "English documentation and parseable Python from an explicit source/path allowlist; tests, vendored code, generated assets, and exact duplicates are excluded.",
         "source_count": len(SOURCES),
-        "document_count": len(documents),
-        "corpus_characters": len(corpus),
+        "document_count": document_count,
+        "corpus_characters": corpus_characters,
         "rejections": total_rejections,
         "sources": provenance_sources,
     }
-    (output_dir / "python_provenance.json").write_text(
+    (output_dir / "provenance.json").write_text(
         json.dumps(provenance, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    rebuild_combined(output_dir)
-    print(f"\nWrote {len(documents)} documents and {len(corpus):,} characters to {output_dir}")
+    print(f"\nWrote {document_count} documents and {corpus_characters:,} characters to {output_dir}")
 
 
 def main() -> None:
@@ -362,7 +357,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "data" / "pretrain",
+        default=Path(__file__).resolve().parent.parent / "data" / "sources" / "python_docs",
     )
     args = parser.parse_args()
     build(args.output_dir)

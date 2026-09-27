@@ -1,0 +1,9 @@
+{
+  "description": "Books + Python docs/source. Same content as the old combined_corpus.txt.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "books", "repeat": 1},
+    {"name": "python_docs", "repeat": 1}
+  ]
+}

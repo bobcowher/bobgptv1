@@ -1,87 +1,103 @@
 # Training data
 
-This repository has two reproducible educational datasets under `data/`.
-The generated data itself remains ignored by Git (as established by the
-project's existing `.gitignore`); the generator scripts are tracked.
+Data lives under `data/` (a symlink to `/data/datasets/bobgptv1`, ignored by
+Git). The scripts that produce it and the mix configs are tracked.
 
-## Pretraining corpus
-
-Run:
-
-```bash
-python scripts/prepare_public_domain_corpus.py
+```
+data/
+  sources/<source>/*.jsonl     one record per document; add data by adding a file
+  build/<mix>/                 tokenized output of a mix; regenerate, never edit
+    train.bin, val.bin         uint16 GPT-2 token ids, documents separated by <|endoftext|>
+    manifest.json              the mix config it was built from + per-source counts
+mixes/<mix>.json               (in Git) which sources go into a build, and how often
+chat_template.py               (in Git) the only place chat messages become text
 ```
 
-This creates:
-
-- `data/pretrain/books/*.txt`: 25 cleaned books, one file per work.
-- `data/pretrain/corpus.txt`: all books joined into one next-token-training
-  corpus.
-- `data/pretrain/provenance.json`: title, author, genre, publication year,
-  source links, rights status, character counts, and SHA-256 hashes.
-
-The selection emphasizes foundational science fiction and speculative fiction
-while including several works with early modernist or Jazz Age prose. Before a
-download is accepted, the script checks the book's current Project Gutenberg
-RDF record for the exact statement `Public domain in the USA.`. It then removes
-the Project Gutenberg header and license footer from the training copy.
-
-That status is specific to the United States. Check copyright law in the place
-where the data will be downloaded, distributed, or used. Project Gutenberg's
-policy is at <https://www.gutenberg.org/policy/license>.
-
-### Python pretraining material
-
-After preparing the literature corpus, run:
+The pipeline is **sources → mix → build → train**:
 
 ```bash
-python scripts/prepare_python_corpus.py
+python scripts/prepare_public_domain_corpus.py   # -> data/sources/books/
+python scripts/prepare_python_corpus.py          # -> data/sources/python_docs/
+python scripts/generate_python_qa.py             # -> data/sources/python_qa/
+python scripts/build_mix.py pretrain_v1          # -> data/build/pretrain_v1/
+scripts/sync_data.sh                             # push data/ to the lab box
 ```
 
-This creates:
+`scripts/train.py` names a mix, and `make_loaders` in `dataset.py` memory-maps
+its `.bin` files. It refuses to train if `mixes/<mix>.json` changed after the
+last build.
 
-- `data/pretrain/python_corpus.txt`: filtered Python source and technical
-  documentation.
-- `data/pretrain/python_provenance.json`: repositories, exact Git revisions,
-  archive hashes, licenses, selection counts, and rejection counts.
-- `data/pretrain/python_licenses/`: a copy of every upstream license or license
-  policy used by the corpus.
-- `data/pretrain/combined_corpus.txt`: literature followed by the Python
-  corpus, ready for the current next-token training pipeline.
+## Source records
 
-The Python sources are deliberately limited to an explicit permissive-license
-allowlist: CPython documentation and selected standard-library modules, PEPs
-whose final license section declares public-domain or CC0 terms, and selected
-MIT/BSD/Apache projects. The builder pins exact commits, excludes tests and
-vendored/generated material, rejects invalid Python, and removes exact
-duplicates. Preserve `python_provenance.json` and `python_licenses/` when
-redistributing the corpus or a derived dataset.
+Every line is one JSON object with a unique `id` (unique within its source).
+A record has either `text`:
 
-## Python Q&A corpus
-
-Run:
-
-```bash
-python scripts/generate_python_qa.py
+```json
+{"id": "cpython/Doc/library/json.rst", "text": "...", "metadata": {"project": "cpython", ...}}
 ```
 
-This creates deterministic training and validation splits in two forms:
+or `messages`, for conversations:
 
-- `data/finetune/{train,validation}.jsonl`: chat records with `system`, `user`,
-  and `assistant` messages.
-- `data/finetune/{train,validation}.txt`: the same records serialized with
-  `### System`, `### Question`, `### Answer`, and `### End` markers for a plain
-  causal-language-model loader.
-- `data/finetune/metadata.json`: counts and format information.
+```json
+{"id": "python_tutor/python_concept_0001",
+ "messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."},
+              {"role": "assistant", "content": "..."}],
+ "metadata": {"category": "concept", ...}}
+```
 
-The examples cover Python concepts, output prediction, function writing, and
-debugging. The generator checks IDs and pairs for duplicates and parses every
-Python fenced block with `ast.parse`. The synthetic examples are released under
-CC0-1.0.
+`messages` records are turned into text by `chat_template.render()` at build time.
+The server needs to prompt with the same template.
 
-`scripts/train.py` loads `data/pretrain/combined_corpus.txt`. The loader
-tokenizes it once into one contiguous tensor, splits that tensor into training
-and validation views, and creates shifted inputs and targets only as batches
-are requested. The plain-text Q&A files can be consumed by the same next-token
-objective, while the JSONL form is intended for a future instruction-aware
-data loader.
+Adding data means dropping a new `.jsonl` into a source directory, or adding a
+new source directory, and listing it in a mix. Existing files are never edited
+to add to them.
+
+## Mixes
+
+```json
+{"val_fraction": 0.1, "chunk_chars": 20000,
+ "sources": [{"name": "books", "repeat": 1}, {"name": "python_docs", "repeat": 1}]}
+```
+
+- `repeat` upsamples a source in train (integer copies). Val is never repeated.
+- **Train/val split:** a unit goes to val when `sha256(unit id)` lands in the
+  bottom `val_fraction` of 1000 buckets. The split depends only on ids, so
+  adding documents never moves existing ones between train and val.
+- **Chunking:** documents longer than `chunk_chars` are cut at paragraph
+  breaks into `<id>#partNNN` units before hashing. With only 25 books, hashing
+  whole books would put 2-3 entire novels in val; hashing ~20K-character parts
+  gives val prose from most books.
+- Phases (e.g. pretraining vs. mixing in Q&A late) are just different mixes over
+  the same sources. `pretrain_v1` doesn't use `python_qa` yet. Adding
+  `{"name": "python_qa", "repeat": N}` puts it in the block.
+
+## Sources
+
+### books: public-domain literature
+
+25 Project Gutenberg works, science fiction and speculative fiction plus some
+early modernist and Jazz Age prose. `gutenberg.jsonl` has one record per book.
+`provenance.json` holds title, author, year, source links, rights status and
+SHA-256 hashes.
+
+Before a download is accepted, the script checks the book's Gutenberg RDF record
+for the exact statement `Public domain in the USA.`, then strips the Gutenberg
+header and license footer. That status is US-specific. Check the law where the
+data will be used. See <https://www.gutenberg.org/policy/license>.
+
+### python_docs: Python documentation and source
+
+One `<project>.jsonl` per project. The projects are CPython docs and selected
+stdlib modules, PEPs whose license section declares public domain or CC0, and
+selected MIT/BSD/Apache projects. The builder pins exact commits, excludes
+tests and vendored or generated material, rejects unparseable Python, and
+removes exact duplicates. `provenance.json` records repositories, revisions,
+archive hashes and rejection counts. `licenses/` keeps every upstream license.
+Keep both when redistributing.
+
+### python_qa: synthetic Python Q&A
+
+`python_tutor.jsonl` has 208 deterministic chat examples: concepts, output
+prediction, function writing and debugging. The generator checks for
+duplicates and parses every fenced Python block with `ast.parse`. Released
+under CC0-1.0.
