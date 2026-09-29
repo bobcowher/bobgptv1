@@ -3,6 +3,7 @@ import tiktoken
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from models import GPTModel
+import math
 import os
 
 
@@ -31,7 +32,20 @@ class LanguageModel:
         self.checkpoint_path = "checkpoints/model.pth"
 
 
-    def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2):
+    def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
+              warmup_steps=2000, min_lr_ratio=0.1):
+
+        # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
+        # The schedule needs the run length up front: num_epochs is the budget.
+        total_steps = num_epochs * len(self.train_loader)
+
+        def lr_factor(step):
+            if step < warmup_steps:
+                return (step + 1) / warmup_steps
+            progress = min(1.0, (step - warmup_steps) / max(1, total_steps - warmup_steps))
+            return min_lr_ratio + (1 - min_lr_ratio) * 0.5 * (1 + math.cos(math.pi * progress))
+
+        scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_factor)
 
         train_losses, val_losses, track_tokens_seen = [], [], []
         tokens_seen, global_step = 0, -1
@@ -48,6 +62,7 @@ class LanguageModel:
                     loss = self.calc_loss_batch(input_batch, target_batch)
                     loss.backward()
                     self.optimizer.step()
+                    scheduler.step()
                     tokens_seen += input_batch.numel()
                     global_step += 1
                     epoch_loss_sum += loss.item()
@@ -61,9 +76,11 @@ class LanguageModel:
                         track_tokens_seen.append(tokens_seen)
                         writer.add_scalar("loss/train_eval", train_loss, global_step)
                         writer.add_scalar("loss/val", val_loss, global_step)
+                        writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step)
                         print(f"Ep {epoch+1} (Step {global_step:06d}): "
                               f"Train loss {train_loss:.3f}, "
-                              f"Val loss {val_loss:.3f}"
+                              f"Val loss {val_loss:.3f}, "
+                              f"LR {scheduler.get_last_lr()[0]:.2e}"
                               )
 
                         sample = self.generate_and_print_sample(start_context)

@@ -25,11 +25,16 @@ PROMPTS = {
         "import json\n\n\ndef load_config(path):\n",
         "class Stack:\n    \"\"\"A simple LIFO stack.\"\"\"\n\n    def __init__(self):\n",
         "for i, line in enumerate(",
+        "fn lower_bound(values: &[i32], target: i32) -> usize {\n",
+        "std::vector<int> stable_unique(std::span<const int> values) {\n",
     ],
     "qa": [
         qa_prompt("What is the difference between a list and a tuple in Python?"),
         qa_prompt("How do I read a file line by line in Python?"),
         qa_prompt("What does the `yield` keyword do?"),
+        qa_prompt("Why does Rust prevent a vector from being mutated while one of its elements is borrowed?"),
+        qa_prompt("When should C++ code use std::unique_ptr instead of std::shared_ptr?"),
+        qa_prompt("What is the difference between Linux permitted and effective capability sets?"),
     ],
 }
 

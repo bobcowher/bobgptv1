@@ -19,8 +19,12 @@ The pipeline is **sources → mix → build → train**:
 python scripts/prepare_public_domain_corpus.py   # -> data/sources/books/
 python scripts/prepare_python_corpus.py          # -> data/sources/python_docs/
 python scripts/generate_python_qa.py             # -> data/sources/python_qa/
+python scripts/prepare_code_corpus.py            # -> data/sources/code_docs/
+python scripts/prepare_linux_manpages.py          # -> data/sources/linux_manpages/
+python scripts/generate_code_linux_qa.py          # -> data/sources/{code,linux}_qa/
+python scripts/generate_large_qa.py               # -> data/sources/{code,linux}_curriculum/
 python scripts/prepare_fineweb_edu.py            # -> data/sources/fineweb_edu/
-python scripts/build_mix.py pretrain_v2          # -> data/build/pretrain_v2/
+python scripts/build_mix.py pretrain_v4          # -> data/build/pretrain_v4/
 scripts/sync_data.sh                             # push data/ to the lab box
 ```
 
@@ -75,6 +79,13 @@ to add to them.
   FineWeb-Edu and `python_qa` (repeat 5). Because the split depends only on
   ids, books/python_docs val units are identical in both, so a v2 model can be
   scored on `build/pretrain_v1/val.bin` for a like-for-like comparison.
+- `pretrain_v4` (current) drops the templated `*_curriculum` sources (14
+  fill-in-the-blank templates; the model learns the template, not the
+  subject) and adds `tutor_qa`. All hand-authored Q&A is repeated 3x.
+- `pretrain_v3` removes the five identical copies of each Python Q&A record and
+  adds each instructional record once. It adds real Rust/C++ educational code,
+  Linux interface documentation, and a large distinct Python/Rust/C++/Linux
+  worked-problem curriculum.
 
 ## Sources
 
@@ -116,3 +127,50 @@ dump for attribution.
 prediction, function writing and debugging. The generator checks for
 duplicates and parses every fenced Python block with `ast.parse`. Released
 under CC0-1.0.
+
+### code_docs: Rust and C++ documentation/source
+
+Revision-pinned snapshots of The Rust Programming Language (including runnable
+listings), the MIT-licensed {fmt} library, and the MIT-licensed The Algorithms
+C++ collection. Tests, build output and vendored material are excluded; exact
+duplicates are removed. `provenance.json` records revisions and archive hashes,
+and `licenses/` retains the upstream license texts.
+
+### linux_manpages: Linux kernel/userspace interfaces
+
+Linux man-pages 6.19, downloaded from kernel.org with a pinned SHA-256 and
+rendered from roff to readable UTF-8 with `groff` and `col`. Redirect-only alias
+pages are omitted. This covers system calls, library interfaces, protocols,
+file formats, administration interfaces, and `capabilities(7)`. Licensing is
+declared per page upstream; all release license texts are retained.
+
+### code_qa and linux_qa: authored instruction examples
+
+Distinct CC0 conversations generated deterministically by
+`generate_code_linux_qa.py`; none are repeated in `pretrain_v3`. Code examples
+cover Python, Rust, and C++ concepts, implementation, debugging, and
+cross-language comparisons. Linux examples cover operations, diagnostics,
+shell safety, permissions, services, networking, containers, and the kernel
+capability model. Python fenced blocks are parsed during generation.
+
+### code_curriculum and linux_curriculum: large worked-problem sets
+
+`generate_large_qa.py` adds more than ten thousand balanced Python, Rust, and
+C++ tracing, implementation, debugging, and testing problems, plus thousands
+of Linux filesystem, journal, socket, permissions, shell-safety, and capability
+scenarios. Each question/answer pair is unique, deterministic, CC0, and appears
+only once in `pretrain_v3`. Numeric outputs are computed by the generator and
+Python code is parsed before any records are written.
+
+### tutor_qa: Codex-authored tutor conversations
+
+850 conversations (17 batches of 50; Python basics, closures, Rust ownership,
+Linux filesystem), each written individually by Codex (`codex exec`, one
+headless session per batch). `scripts/tutor_qa/` holds the batch plan
+(`batches.json`: 60 topics x 2 levels), the prompt, the runner, and
+`validate.py`, which every batch must pass: schema, unique ids and questions,
+<= 230 GPT-2 tokens per rendered conversation (context is 256), Python in
+answers parses, Rust in answers compiles (`rustc`), C++ in answers compiles
+(`g++ -std=c++20 -fsyntax-only`). Buggy code in debugging *questions* is
+intentional and unchecked. Batches were generated in a staging directory and
+copied here once valid; the remaining ~100 planned batches are unrun. CC0-1.0.

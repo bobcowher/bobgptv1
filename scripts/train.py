@@ -10,11 +10,12 @@ from languagemodel import LanguageModel
 
 
 # A mix in mixes/, built into data/build/ by scripts/build_mix.py
-train_loader, val_loader = make_loaders("pretrain_v2", GPT_CONFIG_124M, batch_size=8)
+train_loader, val_loader = make_loaders("pretrain_v4", GPT_CONFIG_124M, batch_size=8)
 
 
-# ~215M train tokens: ~4.5h/epoch on the 3090. Early stopping usually ends it sooner.
-num_epochs = 5
+# One pass (~4.5h on the 3090). The LR schedule decays to its floor at the end of
+# the last epoch, so num_epochs is the training budget, not a cap.
+num_epochs = 1
 
 model = LanguageModel(gpt_config=GPT_CONFIG_124M, 
                       train_loader=train_loader, 

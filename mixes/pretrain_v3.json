@@ -1,0 +1,17 @@
+{
+  "description": "pretrain_v2 without Q&A repetition, plus revision-pinned Rust/C++ code, Linux man-pages, and a large distinct code/Linux instruction curriculum.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "books", "repeat": 1},
+    {"name": "python_docs", "repeat": 1},
+    {"name": "code_docs", "repeat": 1},
+    {"name": "linux_manpages", "repeat": 1},
+    {"name": "fineweb_edu", "repeat": 1, "val_fraction": 0.01},
+    {"name": "python_qa", "repeat": 1},
+    {"name": "code_qa", "repeat": 1},
+    {"name": "linux_qa", "repeat": 1},
+    {"name": "code_curriculum", "repeat": 1},
+    {"name": "linux_curriculum", "repeat": 1}
+  ]
+}

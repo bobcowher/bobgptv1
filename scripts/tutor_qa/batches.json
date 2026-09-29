@@ -1,0 +1,722 @@
+[
+ {
+  "slug": "python_variables_numbers_and_basic_types_beginner",
+  "language": "python",
+  "topic": "variables, numbers and basic types",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_variables_numbers_and_basic_types_intermediate",
+  "language": "python",
+  "topic": "variables, numbers and basic types",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_strings_f_strings_and_formatting_beginner",
+  "language": "python",
+  "topic": "strings, f-strings and formatting",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_strings_f_strings_and_formatting_intermediate",
+  "language": "python",
+  "topic": "strings, f-strings and formatting",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_lists_and_slicing_beginner",
+  "language": "python",
+  "topic": "lists and slicing",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_lists_and_slicing_intermediate",
+  "language": "python",
+  "topic": "lists and slicing",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_tuples_and_unpacking_beginner",
+  "language": "python",
+  "topic": "tuples and unpacking",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_tuples_and_unpacking_intermediate",
+  "language": "python",
+  "topic": "tuples and unpacking",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_dictionaries_beginner",
+  "language": "python",
+  "topic": "dictionaries",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_dictionaries_intermediate",
+  "language": "python",
+  "topic": "dictionaries",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_sets_beginner",
+  "language": "python",
+  "topic": "sets",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_sets_intermediate",
+  "language": "python",
+  "topic": "sets",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_if_elif_else_truthiness_and_boolean_logi_beginner",
+  "language": "python",
+  "topic": "if/elif/else, truthiness and boolean logic",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_if_elif_else_truthiness_and_boolean_logi_intermediate",
+  "language": "python",
+  "topic": "if/elif/else, truthiness and boolean logic",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_for_while_loops_range_enumerate_and_zip_beginner",
+  "language": "python",
+  "topic": "for/while loops, range, enumerate and zip",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_for_while_loops_range_enumerate_and_zip_intermediate",
+  "language": "python",
+  "topic": "for/while loops, range, enumerate and zip",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_functions_parameters_defaults_args_and_k_beginner",
+  "language": "python",
+  "topic": "functions, parameters, defaults, *args and **kwargs",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_functions_parameters_defaults_args_and_k_intermediate",
+  "language": "python",
+  "topic": "functions, parameters, defaults, *args and **kwargs",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_scope_closures_and_nonlocal_beginner",
+  "language": "python",
+  "topic": "scope, closures and nonlocal",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_scope_closures_and_nonlocal_intermediate",
+  "language": "python",
+  "topic": "scope, closures and nonlocal",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_lambda_sorted_min_max_with_key_functions_beginner",
+  "language": "python",
+  "topic": "lambda, sorted/min/max with key functions",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_lambda_sorted_min_max_with_key_functions_intermediate",
+  "language": "python",
+  "topic": "lambda, sorted/min/max with key functions",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_list_dict_and_set_comprehensions_beginner",
+  "language": "python",
+  "topic": "list, dict and set comprehensions",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_list_dict_and_set_comprehensions_intermediate",
+  "language": "python",
+  "topic": "list, dict and set comprehensions",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_iterators_generators_and_yield_beginner",
+  "language": "python",
+  "topic": "iterators, generators and yield",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_iterators_generators_and_yield_intermediate",
+  "language": "python",
+  "topic": "iterators, generators and yield",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_exceptions_beginner",
+  "language": "python",
+  "topic": "exceptions: try/except/else/finally and raising",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_exceptions_intermediate",
+  "language": "python",
+  "topic": "exceptions: try/except/else/finally and raising",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_reading_and_writing_files_pathlib_beginner",
+  "language": "python",
+  "topic": "reading and writing files, pathlib",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_reading_and_writing_files_pathlib_intermediate",
+  "language": "python",
+  "topic": "reading and writing files, pathlib",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_context_managers_and_the_with_statement_beginner",
+  "language": "python",
+  "topic": "context managers and the with statement",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_context_managers_and_the_with_statement_intermediate",
+  "language": "python",
+  "topic": "context managers and the with statement",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_classes_instances_and_methods_beginner",
+  "language": "python",
+  "topic": "classes, instances and methods",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_classes_instances_and_methods_intermediate",
+  "language": "python",
+  "topic": "classes, instances and methods",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_inheritance_super_beginner",
+  "language": "python",
+  "topic": "inheritance, super() and dunder methods",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_inheritance_super_intermediate",
+  "language": "python",
+  "topic": "inheritance, super() and dunder methods",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_dataclasses_and_enums_beginner",
+  "language": "python",
+  "topic": "dataclasses and enums",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_dataclasses_and_enums_intermediate",
+  "language": "python",
+  "topic": "dataclasses and enums",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_modules_imports_packages_pip_and_virtual_beginner",
+  "language": "python",
+  "topic": "modules, imports, packages, pip and virtual environments",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_modules_imports_packages_pip_and_virtual_intermediate",
+  "language": "python",
+  "topic": "modules, imports, packages, pip and virtual environments",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_type_hints_and_typing_beginner",
+  "language": "python",
+  "topic": "type hints and typing",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_type_hints_and_typing_intermediate",
+  "language": "python",
+  "topic": "type hints and typing",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_collections_and_itertools_beginner",
+  "language": "python",
+  "topic": "collections and itertools",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_collections_and_itertools_intermediate",
+  "language": "python",
+  "topic": "collections and itertools",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_json_and_csv_beginner",
+  "language": "python",
+  "topic": "json and csv",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_json_and_csv_intermediate",
+  "language": "python",
+  "topic": "json and csv",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_datetime_and_time_beginner",
+  "language": "python",
+  "topic": "datetime and time",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_datetime_and_time_intermediate",
+  "language": "python",
+  "topic": "datetime and time",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_regular_expressions_beginner",
+  "language": "python",
+  "topic": "regular expressions (re)",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_regular_expressions_intermediate",
+  "language": "python",
+  "topic": "regular expressions (re)",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_testing_with_pytest_and_unittest_beginner",
+  "language": "python",
+  "topic": "testing with pytest and unittest",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_testing_with_pytest_and_unittest_intermediate",
+  "language": "python",
+  "topic": "testing with pytest and unittest",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_reading_tracebacks_and_fixing_common_err_beginner",
+  "language": "python",
+  "topic": "reading tracebacks and fixing common errors",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_reading_tracebacks_and_fixing_common_err_intermediate",
+  "language": "python",
+  "topic": "reading tracebacks and fixing common errors",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_recursion_and_classic_algorithms_beginner",
+  "language": "python",
+  "topic": "recursion and classic algorithms",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_recursion_and_classic_algorithms_intermediate",
+  "language": "python",
+  "topic": "recursion and classic algorithms",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_complexity_performance_and_choosing_data_beginner",
+  "language": "python",
+  "topic": "complexity, performance and choosing data structures",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_complexity_performance_and_choosing_data_intermediate",
+  "language": "python",
+  "topic": "complexity, performance and choosing data structures",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_asyncio_basics_beginner",
+  "language": "python",
+  "topic": "asyncio basics",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_asyncio_basics_intermediate",
+  "language": "python",
+  "topic": "asyncio basics",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_decorators_and_functools_beginner",
+  "language": "python",
+  "topic": "decorators and functools",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_decorators_and_functools_intermediate",
+  "language": "python",
+  "topic": "decorators and functools",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_mutability_copying_identity_beginner",
+  "language": "python",
+  "topic": "mutability, copying, identity (is vs ==) and references",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_mutability_copying_identity_intermediate",
+  "language": "python",
+  "topic": "mutability, copying, identity (is vs ==) and references",
+  "level": "intermediate"
+ },
+ {
+  "slug": "python_command_line_scripts_beginner",
+  "language": "python",
+  "topic": "command-line scripts: argparse, logging, sys and os",
+  "level": "beginner"
+ },
+ {
+  "slug": "python_command_line_scripts_intermediate",
+  "language": "python",
+  "topic": "command-line scripts: argparse, logging, sys and os",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_ownership_and_moves_beginner",
+  "language": "rust",
+  "topic": "ownership and moves",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_ownership_and_moves_intermediate",
+  "language": "rust",
+  "topic": "ownership and moves",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_borrowing_references_and_lifetimes_beginner",
+  "language": "rust",
+  "topic": "borrowing, references and lifetimes",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_borrowing_references_and_lifetimes_intermediate",
+  "language": "rust",
+  "topic": "borrowing, references and lifetimes",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_structs_enums_and_pattern_matching_beginner",
+  "language": "rust",
+  "topic": "structs, enums and pattern matching",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_structs_enums_and_pattern_matching_intermediate",
+  "language": "rust",
+  "topic": "structs, enums and pattern matching",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_option_result_and_error_handling_with_beginner",
+  "language": "rust",
+  "topic": "Option, Result and error handling with ?",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_option_result_and_error_handling_with_intermediate",
+  "language": "rust",
+  "topic": "Option, Result and error handling with ?",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_traits_and_generics_beginner",
+  "language": "rust",
+  "topic": "traits and generics",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_traits_and_generics_intermediate",
+  "language": "rust",
+  "topic": "traits and generics",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_vec_hashmap_and_iterators_beginner",
+  "language": "rust",
+  "topic": "Vec, HashMap and iterators",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_vec_hashmap_and_iterators_intermediate",
+  "language": "rust",
+  "topic": "Vec, HashMap and iterators",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_string_vs_str_and_text_handling_beginner",
+  "language": "rust",
+  "topic": "String vs &str and text handling",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_string_vs_str_and_text_handling_intermediate",
+  "language": "rust",
+  "topic": "String vs &str and text handling",
+  "level": "intermediate"
+ },
+ {
+  "slug": "rust_cargo_modules_crates_and_testing_beginner",
+  "language": "rust",
+  "topic": "cargo, modules, crates and testing",
+  "level": "beginner"
+ },
+ {
+  "slug": "rust_cargo_modules_crates_and_testing_intermediate",
+  "language": "rust",
+  "topic": "cargo, modules, crates and testing",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_types_references_const_and_basic_syntax_beginner",
+  "language": "cpp",
+  "topic": "types, references, const and basic syntax",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_types_references_const_and_basic_syntax_intermediate",
+  "language": "cpp",
+  "topic": "types, references, const and basic syntax",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_pointers_arrays_and_manual_memory_vs_rai_beginner",
+  "language": "cpp",
+  "topic": "pointers, arrays and manual memory vs RAII",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_pointers_arrays_and_manual_memory_vs_rai_intermediate",
+  "language": "cpp",
+  "topic": "pointers, arrays and manual memory vs RAII",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_unique_ptr_shared_ptr_and_ownership_beginner",
+  "language": "cpp",
+  "topic": "unique_ptr, shared_ptr and ownership",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_unique_ptr_shared_ptr_and_ownership_intermediate",
+  "language": "cpp",
+  "topic": "unique_ptr, shared_ptr and ownership",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_stl_containers_beginner",
+  "language": "cpp",
+  "topic": "STL containers: vector, map, unordered_map, set",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_stl_containers_intermediate",
+  "language": "cpp",
+  "topic": "STL containers: vector, map, unordered_map, set",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_algorithms_lambdas_and_ranges_beginner",
+  "language": "cpp",
+  "topic": "algorithms, lambdas and ranges",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_algorithms_lambdas_and_ranges_intermediate",
+  "language": "cpp",
+  "topic": "algorithms, lambdas and ranges",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_classes_constructors_rule_of_zero_three_beginner",
+  "language": "cpp",
+  "topic": "classes, constructors, rule of zero/three/five and move semantics",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_classes_constructors_rule_of_zero_three_intermediate",
+  "language": "cpp",
+  "topic": "classes, constructors, rule of zero/three/five and move semantics",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_templates_and_generic_code_beginner",
+  "language": "cpp",
+  "topic": "templates and generic code",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_templates_and_generic_code_intermediate",
+  "language": "cpp",
+  "topic": "templates and generic code",
+  "level": "intermediate"
+ },
+ {
+  "slug": "cpp_undefined_behavior_compiler_linker_error_beginner",
+  "language": "cpp",
+  "topic": "undefined behavior, compiler/linker errors and debugging",
+  "level": "beginner"
+ },
+ {
+  "slug": "cpp_undefined_behavior_compiler_linker_error_intermediate",
+  "language": "cpp",
+  "topic": "undefined behavior, compiler/linker errors and debugging",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_navigating_the_filesystem_and_managing_f_beginner",
+  "language": "linux",
+  "topic": "navigating the filesystem and managing files",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_navigating_the_filesystem_and_managing_f_intermediate",
+  "language": "linux",
+  "topic": "navigating the filesystem and managing files",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_permissions_ownership_sudo_and_users_gro_beginner",
+  "language": "linux",
+  "topic": "permissions, ownership, sudo and users/groups",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_permissions_ownership_sudo_and_users_gro_intermediate",
+  "language": "linux",
+  "topic": "permissions, ownership, sudo and users/groups",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_processes_jobs_and_signals_beginner",
+  "language": "linux",
+  "topic": "processes, jobs and signals (ps, top, kill)",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_processes_jobs_and_signals_intermediate",
+  "language": "linux",
+  "topic": "processes, jobs and signals (ps, top, kill)",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_pipes_redirection_and_text_tools_beginner",
+  "language": "linux",
+  "topic": "pipes, redirection and text tools (grep, sed, awk, sort, cut)",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_pipes_redirection_and_text_tools_intermediate",
+  "language": "linux",
+  "topic": "pipes, redirection and text tools (grep, sed, awk, sort, cut)",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_bash_scripting_beginner",
+  "language": "linux",
+  "topic": "bash scripting: variables, quoting, conditionals, loops",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_bash_scripting_intermediate",
+  "language": "linux",
+  "topic": "bash scripting: variables, quoting, conditionals, loops",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_systemd_services_and_journalctl_beginner",
+  "language": "linux",
+  "topic": "systemd services and journalctl",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_systemd_services_and_journalctl_intermediate",
+  "language": "linux",
+  "topic": "systemd services and journalctl",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_networking_tools_beginner",
+  "language": "linux",
+  "topic": "networking tools (ip, ss, curl, ping, dig)",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_networking_tools_intermediate",
+  "language": "linux",
+  "topic": "networking tools (ip, ss, curl, ping, dig)",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_packages_path_and_environment_variables_beginner",
+  "language": "linux",
+  "topic": "packages, PATH and environment variables",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_packages_path_and_environment_variables_intermediate",
+  "language": "linux",
+  "topic": "packages, PATH and environment variables",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_ssh_scp_rsync_and_remote_work_beginner",
+  "language": "linux",
+  "topic": "ssh, scp/rsync and remote work",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_ssh_scp_rsync_and_remote_work_intermediate",
+  "language": "linux",
+  "topic": "ssh, scp/rsync and remote work",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_disks_filesystems_mounts_and_df_du_beginner",
+  "language": "linux",
+  "topic": "disks, filesystems, mounts and df/du",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_disks_filesystems_mounts_and_df_du_intermediate",
+  "language": "linux",
+  "topic": "disks, filesystems, mounts and df/du",
+  "level": "intermediate"
+ },
+ {
+  "slug": "linux_git_fundamentals_from_the_command_line_beginner",
+  "language": "linux",
+  "topic": "git fundamentals from the command line",
+  "level": "beginner"
+ },
+ {
+  "slug": "linux_git_fundamentals_from_the_command_line_intermediate",
+  "language": "linux",
+  "topic": "git fundamentals from the command line",
+  "level": "intermediate"
+ }
+]
