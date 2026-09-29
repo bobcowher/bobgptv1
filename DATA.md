@@ -24,7 +24,7 @@ python scripts/prepare_linux_manpages.py          # -> data/sources/linux_manpag
 python scripts/generate_code_linux_qa.py          # -> data/sources/{code,linux}_qa/
 python scripts/generate_large_qa.py               # -> data/sources/{code,linux}_curriculum/
 python scripts/prepare_fineweb_edu.py            # -> data/sources/fineweb_edu/
-python scripts/build_mix.py pretrain_v4          # -> data/build/pretrain_v4/
+python scripts/build_mix.py pretrain_v5          # -> data/build/pretrain_v5/
 scripts/sync_data.sh                             # push data/ to the lab box
 ```
 
@@ -79,7 +79,11 @@ to add to them.
   FineWeb-Edu and `python_qa` (repeat 5). Because the split depends only on
   ids, books/python_docs val units are identical in both, so a v2 model can be
   scored on `build/pretrain_v1/val.bin` for a like-for-like comparison.
-- `pretrain_v4` (current) drops the templated `*_curriculum` sources (14
+- `pretrain_v5` (current) is v4 with python_docs grown from 9 to 33 projects
+  (41M -> 139M characters; ~20% of train tokens) and 1,800 tutor_qa
+  conversations. `scripts/eval_frozen.py` is pinned to the original 9 projects
+  so its benchmark is unchanged.
+- `pretrain_v4` drops the templated `*_curriculum` sources (14
   fill-in-the-blank templates; the model learns the template, not the
   subject) and adds `tutor_qa`. All hand-authored Q&A is repeated 3x.
 - `pretrain_v3` removes the five identical copies of each Python Q&A record and
@@ -164,8 +168,7 @@ Python code is parsed before any records are written.
 
 ### tutor_qa: Codex-authored tutor conversations
 
-850 conversations (17 batches of 50; Python basics, closures, Rust ownership,
-Linux filesystem), each written individually by Codex (`codex exec`, one
+1,800 conversations (36 batches of 50 across Python, Rust, C++ and Linux topics), each written individually by Codex (`codex exec`, one
 headless session per batch). `scripts/tutor_qa/` holds the batch plan
 (`batches.json`: 60 topics x 2 levels), the prompt, the runner, and
 `validate.py`, which every batch must pass: schema, unique ids and questions,
@@ -173,4 +176,4 @@ headless session per batch). `scripts/tutor_qa/` holds the batch plan
 answers parses, Rust in answers compiles (`rustc`), C++ in answers compiles
 (`g++ -std=c++20 -fsyntax-only`). Buggy code in debugging *questions* is
 intentional and unchecked. Batches were generated in a staging directory and
-copied here once valid; the remaining ~100 planned batches are unrun. CC0-1.0.
+copied here once valid; the remaining 84 planned batches are unrun (Codex usage limit). CC0-1.0.

@@ -27,6 +27,12 @@ from config import GPT_CONFIG_124M
 from languagemodel import LanguageModel
 
 SOURCES = ("books", "python_docs")
+# python_docs as it was at pretrain_v1. Projects added later are excluded so the
+# benchmark keeps measuring the same documents.
+FROZEN_PREFIXES = {
+    "python_docs": tuple(f"{p}/" for p in (
+        "cpython", "python_peps", "flask", "click", "requests", "rich", "attrs", "fastapi", "black")),
+}
 VAL_FRACTION, CHUNK_CHARS = 0.1, 20000
 CTX = GPT_CONFIG_124M["context_length"]
 
@@ -34,7 +40,7 @@ CTX = GPT_CONFIG_124M["context_length"]
 def val_tokens(source, enc):
     tokens = []
     for unit_id, text in load_units(source, CHUNK_CHARS):
-        if is_val(unit_id, VAL_FRACTION):
+        if is_val(unit_id, VAL_FRACTION) and unit_id.startswith(FROZEN_PREFIXES.get(source, "")):
             tokens.extend(enc.encode_ordinary(text) + [enc.eot_token])
     return torch.tensor(tokens)
 
