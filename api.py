@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+import time
 import os
 
 app = FastAPI()
@@ -25,15 +26,74 @@ def v1_models() -> V1Models:
 class V1ChatCompletionsRequest(BaseModel):
     model: str
     messages: list
-    stream: bool
-    temperature: float
-    max_tokens: int
+    stream: bool = False
+    temperature: float = 1.0
+    max_tokens: int = 100
 
 class V1ChatCompletionsResponse(BaseModel):
-    pass
+    id: str
+    object: str = "chat.completion"
+    created: int 
+    model: str = "bobgpt"
+    choices: list
+    usage: dict 
 
-@app.post("/v1/chat/completions", response_model=V1ChatCompletionsResponse, status_code=201)
+@app.post("/v1/chat/completions", response_model=V1ChatCompletionsResponse, status_code=200)
 def get_chat_completion(req: V1ChatCompletionsRequest):
+    choices = [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": "Hello from bobgpt!",
+                        "refusal": None
+                        },
+                    "logprobs": None,
+                    "finish_reason": "stop"
+                } 
+            ]
+    usage = {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "total_tokens": 15
+            } 
+
+    response = V1ChatCompletionsResponse(id="5",
+                                         object="chat.completion",
+                                         created=int(time.time()),
+                                         model="bobgpt",
+                                         choices=choices,
+                                         usage=usage
+                                         )
+    return response
+
+
+
+# {
+#   "id": "chatcmpl-abc123",
+#   "object": "chat.completion",
+#   "created": 1790640000,
+#   "model": "bobgpt",
+#   "choices": [
+#     {
+#       "index": 0,
+#       "message": {
+#         "role": "assistant",
+#         "content": "Hello from bobgpt!",
+#         "refusal": null
+#       },
+#       "logprobs": null,
+#       "finish_reason": "stop"
+#     }
+#   ],
+#   "usage": {
+#     "prompt_tokens": 10,
+#     "completion_tokens": 5,
+#     "total_tokens": 15
+#   }
+# }
+
+
     
     
 
