@@ -190,3 +190,31 @@ concept docs and exemplar solutions (MIT), learn-python (MIT), and
 TheAlgorithms/Python (MIT). NonCommercial/NoDerivs books (Think Python, py4e,
 Hitchhiker's Guide, Python Data Science Handbook text) are deliberately
 excluded so the data stays shareable. ~7.5M characters.
+
+### chat: Codex-authored everyday conversations
+
+Conversational behavior the code-heavy sources don't teach: greetings and short
+replies, bobgpt's identity and limits (no internet, clock or memory), saying
+"I don't know", clarifying questions, handling corrections, multi-turn
+follow-ups, format instructions, everyday explanations and writing help, and
+declining harmful requests without refusing safe ones. `scripts/chat/` holds the
+plan (30 themes x 50) and prompt; it runs on the tutor_qa tooling with
+`MAX_TOKENS=400`. CC0-1.0.
+
+### oasst2: human-written conversations
+
+OpenAssistant OASST2 (Apache-2.0), English only: from each conversation tree,
+the path through the volunteers' top-ranked replies. Deleted, failed-review,
+synthetic and toxic messages are dropped, as are conversations naming Open
+Assistant or LAION. Cut to <= 1000 tokens at an assistant-turn boundary.
+5,098 conversations, ~2.1M tokens. `scripts/prepare_oasst2.py`.
+
+### smoltalk: rewriting and constraint following
+
+Hash-selected samples of SmolTalk's smol-rewrite (12,000) and smol-constraints
+(8,000), ~5.9M tokens. Apache-2.0, generated with Qwen2.5-72B-Instruct: **if a
+model trained on this is distributed, its documentation must say "Built with
+Qwen"** (Qwen license). The Llama-3.1-generated subsets (smol-magpie-ultra,
+everyday-conversations) are excluded because Llama's license would require the
+model name to start with "Llama"; smol-summarize is excluded (CNN/DailyMail
+articles). `scripts/prepare_smoltalk.py`.
