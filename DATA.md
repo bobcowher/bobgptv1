@@ -80,7 +80,8 @@ to add to them.
   FineWeb-Edu and `python_qa` (repeat 5). Because the split depends only on
   ids, books/python_docs val units are identical in both, so a v2 model can be
   scored on `build/pretrain_v1/val.bin` for a like-for-like comparison.
-- `pretrain_v5` (current) is v4 with python_docs grown from 9 to 33 projects
+- `pretrain_v6` (current) is v5 + `python_books` + 4,024 tutor_qa conversations.
+- `pretrain_v5` is v4 with python_docs grown from 9 to 33 projects
   (41M -> 139M characters; ~20% of train tokens) and 1,800 tutor_qa
   conversations. `scripts/eval_frozen.py` is pinned to the original 9 projects
   so its benchmark is unchanged.

@@ -10,7 +10,7 @@ from languagemodel import LanguageModel
 
 
 # A mix in mixes/, built into data/build/ by scripts/build_mix.py
-train_loader, val_loader = make_loaders("pretrain_v5", GPT_CONFIG_124M, batch_size=8)
+train_loader, val_loader = make_loaders("pretrain_v6", GPT_CONFIG_124M, batch_size=8)
 
 
 # Two passes. The LR schedule decays to its floor at the end of
