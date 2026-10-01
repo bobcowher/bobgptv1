@@ -65,10 +65,13 @@ def main() -> None:
         rows = pq.read_table(path).column("messages").to_pylist()
         # Lowest hashes first: a stable, spread-out sample.
         candidates = sorted((digest(m), m) for m in rows)
-        records, too_long, tokens = [], 0, 0
+        records, too_long, tokens, seen = [], 0, 0, set()
         for h, messages in candidates:
             if len(records) == keep:
                 break
+            if h in seen:          # the upstream subsets contain exact duplicates
+                continue
+            seen.add(h)
             turns = [{"role": m["role"], "content": m["content"].strip()} for m in messages]
             n = len(enc.encode_ordinary(render(turns)))
             if n > MAX_TOKENS:

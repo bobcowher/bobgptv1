@@ -21,7 +21,7 @@ class LanguageModel:
         self.model = GPTModel(cfg=gpt_config)
         self.optimizer = torch.optim.AdamW(
                          self.model.parameters(),
-                         lr=0.0004, weight_decay=0.1
+                         lr=0.0006, weight_decay=0.1
                         )
         self.model.to(self.device)
         self.train_loader = train_loader
