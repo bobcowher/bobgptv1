@@ -23,6 +23,7 @@ python scripts/prepare_code_corpus.py            # -> data/sources/code_docs/
 python scripts/prepare_linux_manpages.py          # -> data/sources/linux_manpages/
 python scripts/generate_code_linux_qa.py          # -> data/sources/{code,linux}_qa/
 python scripts/generate_large_qa.py               # -> data/sources/{code,linux}_curriculum/
+python scripts/prepare_python_books.py           # -> data/sources/python_books/
 python scripts/prepare_fineweb_edu.py            # -> data/sources/fineweb_edu/
 python scripts/build_mix.py pretrain_v5          # -> data/build/pretrain_v5/
 scripts/sync_data.sh                             # push data/ to the lab box
@@ -177,3 +178,14 @@ answers parses, Rust in answers compiles (`rustc`), C++ in answers compiles
 (`g++ -std=c++20 -fsyntax-only`). Buggy code in debugging *questions* is
 intentional and unchecked. Batches were generated in a staging directory and
 copied here once valid; the remaining 84 planned batches are unrun (Codex usage limit). CC0-1.0.
+
+### python_books: shareable Python books and courses
+
+Seven sources pinned to commits, each with its license statement verified in
+the archive and kept in `licenses/`: Practical Python Programming and Advanced
+Python Mastery (Beazley, CC BY-SA 4.0), A Byte of Python (CC BY-SA 4.0), Dive
+Into Python 3 (CC BY-SA 3.0; HTML converted to text), the Exercism Python track
+concept docs and exemplar solutions (MIT), learn-python (MIT), and
+TheAlgorithms/Python (MIT). NonCommercial/NoDerivs books (Think Python, py4e,
+Hitchhiker's Guide, Python Data Science Handbook text) are deliberately
+excluded so the data stays shareable. ~7.5M characters.
