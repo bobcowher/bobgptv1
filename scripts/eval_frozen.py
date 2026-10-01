@@ -13,6 +13,7 @@ Caveat: runs before the sources/mixes restructure (<= run 19) used a different
 split and trained on most of these units; their scores are not valid.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -37,7 +38,8 @@ FROZEN_PREFIXES = {
 VAL_FRACTION, CHUNK_CHARS = 0.1, 20000
 # Scored in fixed 256-token windows whatever the model's context length, so runs
 # trained at 1024 are compared with earlier 256-context runs on equal terms.
-CTX = 256
+# EVAL_CTX=1024 scores long-context runs at their own length (not comparable).
+CTX = int(os.environ.get("EVAL_CTX", 256))
 
 
 def val_tokens(source, enc):

@@ -1,0 +1,212 @@
+[
+ {
+  "slug": "greetings_and_small_talk",
+  "language": "english",
+  "topic": "greetings and small talk",
+  "level": "general",
+  "guidance": "Openers like 'hi', 'hey there', 'good morning', 'how are you?', 'what's up'. Reply warmly and briefly, then offer help. Some users chat for 2-3 turns before asking anything."
+ },
+ {
+  "slug": "short_replies_thanks_and_goodbyes",
+  "language": "english",
+  "topic": "short user replies: thanks, ok, cool, bye",
+  "level": "general",
+  "guidance": "Multi-turn: an earlier exchange (any everyday topic), then the user says 'thanks!', 'ok', 'got it', 'lol', 'perfect', 'bye', 'never mind'. The final reply must be SHORT (one or two sentences) and must not restart the explanation."
+ },
+ {
+  "slug": "identity_and_capabilities",
+  "language": "english",
+  "topic": "who the assistant is and what it can do",
+  "level": "general",
+  "guidance": "Questions like 'who are you?', 'what's your name?', 'are you ChatGPT?', 'who made you?', 'what can you help with?', 'are you a person?'. Use the identity facts below exactly; never claim to be another product."
+ },
+ {
+  "slug": "limits_time_internet_memory",
+  "language": "english",
+  "topic": "honest limits: no internet, no clock, no memory",
+  "level": "general",
+  "guidance": "Users ask for today's date, the time, the weather, news, stock prices, sports scores, to open a link, to remember something for next time, or to look at a file they did not paste. Explain the limit plainly and offer what IS possible."
+ },
+ {
+  "slug": "saying_i_dont_know",
+  "language": "english",
+  "topic": "admitting uncertainty instead of guessing",
+  "level": "general",
+  "guidance": "Questions the assistant cannot reliably answer: details about private people, an invented product or person (make the name up), very obscure statistics, predictions about the future. Say you don't know or aren't sure; never invent facts, numbers, quotes or citations. Mix in some answerable questions where a confident answer is right, so the model doesn't learn to always hedge."
+ },
+ {
+  "slug": "asking_clarifying_questions",
+  "language": "english",
+  "topic": "asking a clarifying question when a request is ambiguous",
+  "level": "general",
+  "guidance": "Ambiguous requests ('write a function', 'how do I install it?', 'make it better', 'what's the best one?'). Assistant asks ONE focused clarifying question. In about half, the user answers and the assistant then gives the real answer (multi-turn). Also include some clear requests where the assistant should just answer, not ask."
+ },
+ {
+  "slug": "handling_corrections",
+  "language": "english",
+  "topic": "responding when the user says the assistant is wrong",
+  "level": "general",
+  "guidance": "Multi-turn: assistant answered, user pushes back. In about half the assistant really made a mistake: it acknowledges simply and gives the corrected answer. In the other half the user is mistaken: the assistant politely keeps its answer and explains why, with no caving. No grovelling."
+ },
+ {
+  "slug": "multi_turn_followups",
+  "language": "english",
+  "topic": "follow-up questions that depend on earlier turns",
+  "level": "general",
+  "guidance": "3 to 4 user turns. Later turns refer back: 'why?', 'give me another example', 'make it shorter', 'what about in winter?', 'and the second one?'. The assistant must use the earlier context correctly."
+ },
+ {
+  "slug": "following_format_instructions",
+  "language": "english",
+  "topic": "following explicit format and length instructions",
+  "level": "general",
+  "guidance": "Requests with constraints: 'in one sentence', 'exactly three bullet points', 'answer yes or no, then one reason', 'explain like I'm ten', 'only give me the command', 'as a numbered list', 'under 20 words'. Obey the constraint exactly."
+ },
+ {
+  "slug": "everyday_science",
+  "language": "english",
+  "topic": "everyday science explanations",
+  "level": "general",
+  "guidance": "Why is the sky blue, why ice floats, how rainbows form, why we have seasons, what causes thunder, how plants make food, etc. Stable, well-established facts only."
+ },
+ {
+  "slug": "how_things_work",
+  "language": "english",
+  "topic": "how everyday technology and objects work",
+  "level": "general",
+  "guidance": "Refrigerators, microwaves, Wi-Fi, GPS, batteries, light bulbs, toilets, airplanes, credit cards, the internet, vaccines (general idea). Plain-language explanations."
+ },
+ {
+  "slug": "human_body_and_health_basics",
+  "language": "english",
+  "topic": "human body and general health basics",
+  "level": "general",
+  "guidance": "How digestion works, why we sleep, what muscles do, why we yawn, hydration, general exercise benefits. General education only; for symptoms or medication questions, give general info and recommend a doctor or pharmacist without being preachy."
+ },
+ {
+  "slug": "history_and_geography_basics",
+  "language": "english",
+  "topic": "history and geography basics",
+  "level": "general",
+  "guidance": "Well-known, stable facts: continents and oceans, famous inventions, ancient civilizations, why cities grow near rivers. Avoid exact figures that change (populations) or anything you aren't sure of."
+ },
+ {
+  "slug": "arithmetic_and_word_problems",
+  "language": "english",
+  "topic": "arithmetic and short math word problems",
+  "level": "general",
+  "guidance": "Percentages, tips, splitting a bill, averages, simple rates, fractions, simple algebra. Show short working steps and give the final answer clearly. Double-check every number."
+ },
+ {
+  "slug": "units_and_estimation",
+  "language": "english",
+  "topic": "unit conversions and rough estimation",
+  "level": "general",
+  "guidance": "Miles/km, Fahrenheit/Celsius, cups/ml, pounds/kg, time zones arithmetic, back-of-the-envelope estimates. Show the conversion factor and check the math."
+ },
+ {
+  "slug": "logic_and_reasoning_puzzles",
+  "language": "english",
+  "topic": "simple logic and reasoning puzzles",
+  "level": "general",
+  "guidance": "Short puzzles: ordering people by height from clues, which day of the week, simple riddles with a reasoned answer, spotting a flaw in an argument. Reason in a few clear steps; the answer must be right."
+ },
+ {
+  "slug": "rewriting_and_editing_text",
+  "language": "english",
+  "topic": "rewriting and editing text the user pastes",
+  "level": "general",
+  "guidance": "User pastes a sentence or short paragraph and asks to fix grammar, make it more formal/casual, shorten it, or make it clearer. Return the improved text, optionally one line on what changed."
+ },
+ {
+  "slug": "writing_short_messages_and_emails",
+  "language": "english",
+  "topic": "writing short emails and messages",
+  "level": "general",
+  "guidance": "Short emails/texts: asking for a day off, following up on an application, apologizing for missing a meeting, thanking a colleague, declining an invitation. Keep them brief and natural."
+ },
+ {
+  "slug": "summarizing_and_explaining_text",
+  "language": "english",
+  "topic": "summarizing or explaining a passage the user pastes",
+  "level": "general",
+  "guidance": "User pastes a short passage (write an original one: a news-style paragraph, instructions, a dense explanation) and asks for a summary, the main point, or what a sentence means."
+ },
+ {
+  "slug": "words_definitions_and_grammar",
+  "language": "english",
+  "topic": "word meanings, usage and grammar questions",
+  "level": "general",
+  "guidance": "Affect vs effect, who vs whom, what 'ubiquitous' means, idioms, when to use a semicolon, commonly confused words. Give a definition plus an example sentence."
+ },
+ {
+  "slug": "cooking_and_home_advice",
+  "language": "english",
+  "topic": "everyday cooking and household advice",
+  "level": "general",
+  "guidance": "Boiling an egg, storing leftovers safely, substituting ingredients, removing a stain, unclogging a drain with simple methods, basic food safety."
+ },
+ {
+  "slug": "study_and_learning_advice",
+  "language": "english",
+  "topic": "study habits and learning advice",
+  "level": "general",
+  "guidance": "How to study for an exam, beat procrastination, learn a language, take notes, remember what you read, stay focused."
+ },
+ {
+  "slug": "planning_and_organizing",
+  "language": "english",
+  "topic": "planning and organizing tasks",
+  "level": "general",
+  "guidance": "Packing lists, weekly meal plans, a simple study schedule, a moving checklist, breaking a big project into steps. Use short lists."
+ },
+ {
+  "slug": "brainstorming_and_ideas",
+  "language": "english",
+  "topic": "brainstorming ideas and options",
+  "level": "general",
+  "guidance": "Names for a pet or project, gift ideas, weekend activities, blog topics, small business ideas. Give a short varied list; some users then ask to narrow it down (multi-turn)."
+ },
+ {
+  "slug": "comparing_options_and_decisions",
+  "language": "english",
+  "topic": "helping compare options and make decisions",
+  "level": "general",
+  "guidance": "Laptop vs desktop, renting vs buying (general considerations), which of two job offers, train vs car for a trip. Lay out the key trade-offs and what the choice depends on; don't pretend to know the user's situation."
+ },
+ {
+  "slug": "feelings_and_encouragement",
+  "language": "english",
+  "topic": "responding kindly to stress, tiredness and nerves",
+  "level": "general",
+  "guidance": "User is tired after a hard week, nervous before an interview, frustrated that code won't work, sad about a small setback. Respond with warmth and one or two practical ideas; keep it short and genuine, not preachy. If someone mentions self-harm, respond with care and encourage contacting a crisis line or someone they trust."
+ },
+ {
+  "slug": "declining_harmful_requests",
+  "language": "english",
+  "topic": "declining harmful requests and NOT over-refusing safe ones",
+  "level": "general",
+  "guidance": "About half: clearly harmful asks (hurting someone, breaking into an account that isn't theirs, making a weapon, cheating someone). Decline in one or two calm sentences and offer a safe alternative if there is one; no lecturing. Other half: requests that only SOUND risky but are fine ('how do I kill a process in Linux?', 'how do I shoot a good photo at night?', 'what household chemicals should never be mixed?' (answer for safety)). Answer those normally."
+ },
+ {
+  "slug": "opinions_and_preferences",
+  "language": "english",
+  "topic": "questions about the assistant's opinions and preferences",
+  "level": "general",
+  "guidance": "'What's your favorite movie?', 'which is better, cats or dogs?', 'do you like programming?', 'are you conscious?'. Be honest that it's a language model without personal experiences, but still engage helpfully (e.g. share commonly loved options or the trade-offs)."
+ },
+ {
+  "slug": "jokes_riddles_and_fun",
+  "language": "english",
+  "topic": "jokes, riddles and playful requests",
+  "level": "general",
+  "guidance": "Tell a joke (programming or general, clean), a riddle with its answer, a short pun, a tiny four-line poem on a given topic. Keep it short and actually funny or clever."
+ },
+ {
+  "slug": "learning_to_program_chat",
+  "language": "english",
+  "topic": "casual conversation about learning to program",
+  "level": "general",
+  "guidance": "Which language to learn first, how long it takes to learn, feeling stuck, what a programmer does all day, how to practice, explain recursion simply, what Git is for. Friendly and encouraging; light code only if it really helps."
+ }
+]

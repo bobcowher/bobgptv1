@@ -8,11 +8,15 @@ Checks every record for: schema, id prefix, unique ids/questions, token budget
 compiles: ```python via ast.parse, ```rust via rustc, ```cpp via g++. Code in
 the *question* may be intentionally broken (debugging exercises) and is not
 checked. Exit status 1 on any failure.
+
+Ids are prefixed with the staging directory's name (tutor_qa/, chat/), so one
+validator serves every source. MAX_TOKENS in the environment overrides the cap.
 """
 
 import ast
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -21,7 +25,7 @@ from pathlib import Path
 
 import tiktoken
 
-MAX_TOKENS = 230
+MAX_TOKENS = int(os.environ.get("MAX_TOKENS", 230))
 ROLES = {"system", "user", "assistant"}
 FENCE = re.compile(r"```([A-Za-z0-9_+-]*)\n(.*?)```", re.DOTALL)
 enc = tiktoken.get_encoding("gpt2")
@@ -58,7 +62,7 @@ def compile_ok(lang, code):
 
 def check_file(path, seen_ids, seen_questions):
     errors = []
-    prefix = f"tutor_qa/{Path(path).stem}_"
+    prefix = f"{Path(path).resolve().parent.parent.name}/{Path(path).stem}_"
     for lineno, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
         where = f"{path}:{lineno}"
         try:

@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).absolute().parent  # not resolve(): chat/ symlinks this file
 PYTHON = sys.executable
 LANG_NAMES = {"python": "Python 3", "rust": "Rust (2021 edition)", "cpp": "C++20", "linux": "Linux/bash"}
 LEVEL_HINTS = {
@@ -24,7 +24,8 @@ if out.exists() and subprocess.run(validate, capture_output=True).returncode == 
     sys.exit(0)
 
 prompt = (HERE / "prompt_template.md").read_text().format(
-    language_name=LANG_NAMES[batch["language"]], level_hint=LEVEL_HINTS[batch["level"]],
+    language_name=LANG_NAMES.get(batch["language"], batch["language"]),
+    level_hint=LEVEL_HINTS.get(batch["level"], ""),
     python=PYTHON, **batch)
 log = HERE / "logs" / f"{slug}.log"
 with log.open("w") as f:
