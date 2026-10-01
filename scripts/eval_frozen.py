@@ -6,7 +6,8 @@
 The benchmark is the pretrain_v1 val split of books and python_docs (val_fraction
 0.1, chunk_chars 20000). The split depends only on document ids, so no later mix
 trains on these units, and the numbers stay comparable across runs whatever the
-current training mix is. Reports mean per-token loss per source.
+current training mix is. Reports mean per-token loss per source, always in
+256-token windows (see CTX).
 
 Caveat: runs before the sources/mixes restructure (<= run 19) used a different
 split and trained on most of these units; their scores are not valid.
@@ -34,7 +35,9 @@ FROZEN_PREFIXES = {
         "cpython", "python_peps", "flask", "click", "requests", "rich", "attrs", "fastapi", "black")),
 }
 VAL_FRACTION, CHUNK_CHARS = 0.1, 20000
-CTX = GPT_CONFIG_124M["context_length"]
+# Scored in fixed 256-token windows whatever the model's context length, so runs
+# trained at 1024 are compared with earlier 256-context runs on equal terms.
+CTX = 256
 
 
 def val_tokens(source, enc):
@@ -64,7 +67,10 @@ def main():
     data = {source: val_tokens(source, enc) for source in SOURCES}
     print("  ".join(f"{s}: {len(t):,} tokens" for s, t in data.items()))
     for checkpoint in sys.argv[1:]:
-        model = LanguageModel(gpt_config=GPT_CONFIG_124M)
+        # Build each model at the context length it was trained with (pos_emb rows).
+        state = torch.load(checkpoint, map_location="cpu")
+        cfg = dict(GPT_CONFIG_124M, context_length=state["pos_emb.weight"].shape[0])
+        model = LanguageModel(gpt_config=cfg)
         model.load_the_model(checkpoint)
         model.model.eval()
         print(f"{checkpoint}  " + "  ".join(f"{s} {score(model, t):.3f}" for s, t in data.items()))

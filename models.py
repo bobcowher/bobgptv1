@@ -143,17 +143,15 @@ class MultiHeadAttention(nn.Module):
         queries = queries.permute(0, 2, 1, 3)
         values = values.permute(0, 2, 1, 3)
 
-        attn_scores = queries @ keys.transpose(-2, -1)
-        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
-
-        attn_scores.masked_fill_(mask_bool, -torch.inf)
-
-        attn_weights = torch.softmax(
-                attn_scores / keys.shape[-1]**0.5, dim=-1
+        # Fused causal attention: same math as scores -> causal mask -> softmax(/sqrt(d))
+        # -> dropout -> @ values, but never materializes the (tokens x tokens) score
+        # matrix, so memory grows linearly with context instead of quadratically.
+        # self.mask is no longer read; it stays registered so older checkpoints load.
+        context_vec = torch.nn.functional.scaled_dot_product_attention(
+                queries, keys, values,
+                dropout_p=self.dropout.p if self.training else 0.0,
+                is_causal=True,
                 )
-        attn_weights = self.dropout(attn_weights)
-
-        context_vec = attn_weights @ values
 
         # Transpose back to (b, num_tokens, num_heads, head_dim)
         context_vec = context_vec.permute(0, 2, 1, 3)
