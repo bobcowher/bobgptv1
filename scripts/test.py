@@ -36,6 +36,14 @@ PROMPTS = {
         qa_prompt("When should C++ code use std::unique_ptr instead of std::shared_ptr?"),
         qa_prompt("What is the difference between Linux permitted and effective capability sets?"),
     ],
+    "chat": [
+        qa_prompt("hi! who are you?"),
+        qa_prompt("What's today's date?"),
+        qa_prompt("thanks, that helped"),
+        qa_prompt("Why is the sky blue?"),
+        qa_prompt("Rewrite this to sound more polite: send me the report now."),
+        qa_prompt("I have an exam tomorrow and I'm really nervous."),
+    ],
 }
 
 

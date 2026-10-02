@@ -23,9 +23,13 @@ if out.exists() and subprocess.run(validate, capture_output=True).returncode == 
     print(f"{slug}: already valid, skipping")
     sys.exit(0)
 
-prompt = (HERE / "prompt_template.md").read_text().format(
+# A batch with a neutral original in batches_neutral/ is restyled, not written from scratch.
+template = "restyle_template.md" if (HERE / "batches_neutral" / f"{slug}.jsonl").exists() else "prompt_template.md"
+voice = HERE / "voice.md"
+prompt = (HERE / template).read_text().format(
     language_name=LANG_NAMES.get(batch["language"], batch["language"]),
     level_hint=LEVEL_HINTS.get(batch["level"], ""),
+    voice=voice.read_text().strip() if voice.exists() else "",
     python=PYTHON, **batch)
 log = HERE / "logs" / f"{slug}.log"
 with log.open("w") as f:
