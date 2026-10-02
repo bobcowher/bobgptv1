@@ -10,10 +10,27 @@ ROLE_HEADERS = {
     "assistant": "### Answer",
 }
 END_MARKER = "### End"
-
+# ### System
+# You are bobgpt.
+#
+# ### Question
+# What is a tuple?
+#
+# ### Answer
+# An immutable sequence.
+#
+# ### Question
+# Why use one?
+#
+# ### Answer
+# ⏎
 
 def render(messages):
     """A complete conversation, as it appears in training data."""
     turns = [f"{ROLE_HEADERS[m['role']]}\n{m['content'].strip()}" for m in messages]
     return "\n\n".join(turns) + f"\n\n{END_MARKER}"
 
+def render_prompt(messages):
+    turns = [f"{ROLE_HEADERS[m['role']]}\n{m['content'].strip()}" for m in messages]
+    turns.append(f"{ROLE_HEADERS['assistant']}")
+    return "\n\n".join(turns)
