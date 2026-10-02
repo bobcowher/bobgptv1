@@ -32,5 +32,5 @@ def render(messages):
 
 def render_prompt(messages):
     turns = [f"{ROLE_HEADERS[m['role']]}\n{m['content'].strip()}" for m in messages]
-    turns.append(f"{ROLE_HEADERS['assistant']}")
+    turns.append(f"{ROLE_HEADERS['assistant']}\n")
     return "\n\n".join(turns)
