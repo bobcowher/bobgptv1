@@ -7,14 +7,6 @@ from languagemodel import *
 from chat_template import *
 from config import GPT_CONFIG_124M
 
-# messages = [{"role": "system", "content": "You are bobgpt."},
-#             {"role": "user", "content": "What is a tuple?"},
-#             {"role": "assistant", "content": "An immutable sequence."},
-#             {"role": "user", "content": "Why use one?"}]
-#
-# chat = render_prompt(messages)  
-
-
 app = FastAPI()
 
 language_model_path = "checkpoints/model.pth"
@@ -74,13 +66,17 @@ def get_chat_completion(req: V1ChatCompletionsRequest):
                 top_k=40,
                 eos_id=eot
                 )
+
+    completion_tokens = token_ids[:, encoded.shape[1]:]
+
+    print(completion_tokens.shape)
     
-    completion = model.token_ids_to_text(token_ids[:, encoded.shape[1]:], model.tokenizer)
-    
+    completion = model.token_ids_to_text(completion_tokens, model.tokenizer)
+
     usage = {
-            "prompt_tokens": len(encoded),
-            "completion_tokens": len(completion),
-            "total_tokens": len(encoded) + len(completion)
+            "prompt_tokens": encoded.shape[1],
+            "completion_tokens": completion_tokens.shape[1],
+            "total_tokens": encoded.shape[1] + completion_tokens.shape[1]
             } 
     
     choices = [
@@ -104,36 +100,4 @@ def get_chat_completion(req: V1ChatCompletionsRequest):
                                          usage=usage
                                          )
     return response
-
-
-
-# {
-#   "id": "chatcmpl-abc123",
-#   "object": "chat.completion",
-#   "created": 1790640000,
-#   "model": "bobgpt",
-#   "choices": [
-#     {
-#       "index": 0,
-#       "message": {
-#         "role": "assistant",
-#         "content": "Hello from bobgpt!",
-#         "refusal": null
-#       },
-#       "logprobs": null,
-#       "finish_reason": "stop"
-#     }
-#   ],
-#   "usage": {
-#     "prompt_tokens": 10,
-#     "completion_tokens": 5,
-#     "total_tokens": 15
-#   }
-# }
-
-
-    
-    
-
-
 
