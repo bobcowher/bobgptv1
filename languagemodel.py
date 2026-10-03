@@ -13,9 +13,15 @@ def assign(left, right):
         raise ValueError(f"Shape mismatch. Left: {left.shape}, Right: {right.shape}")
     return torch.nn.Parameter(torch.tensor(right))
 
+# pretrain.py writes here; posttrain.py starts from it. Under data/ so both
+# Beekeeper projects see it.
+PRETRAIN_CHECKPOINT = "data/checkpoints/pretrain/model.pth"
+POSTTRAIN_CHECKPOINT = "data/checkpoints/posttrain/model.pth"
+
+
 class LanguageModel:
 
-    def __init__(self, gpt_config, train_loader=None, val_loader=None):
+    def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth"):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = GPTModel(cfg=gpt_config)
@@ -29,7 +35,7 @@ class LanguageModel:
 
         self.tokenizer = tiktoken.get_encoding("gpt2")
 
-        self.checkpoint_path = "checkpoints/model.pth"
+        self.checkpoint_path = checkpoint_path
 
 
     def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
@@ -123,7 +129,7 @@ class LanguageModel:
         if checkpoint_path == None:
             checkpoint_path = self.checkpoint_path
 
-        os.makedirs("checkpoints", exist_ok=True)
+        os.makedirs(os.path.dirname(checkpoint_path) or ".", exist_ok=True)
         torch.save(self.model.state_dict(), checkpoint_path)
         print(f"Saved model checkpoint at {checkpoint_path}")
 

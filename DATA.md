@@ -29,7 +29,7 @@ python scripts/build_mix.py pretrain_v5          # -> data/build/pretrain_v5/
 scripts/sync_data.sh                             # push data/ to the lab box
 ```
 
-`scripts/train.py` names a mix, and `make_loaders` in `dataset.py` memory-maps
+`scripts/pretrain.py` names a mix, and `make_loaders` in `dataset.py` memory-maps
 its `.bin` files. It refuses to train if `mixes/<mix>.json` changed after the
 last build.
 
