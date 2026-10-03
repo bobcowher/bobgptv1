@@ -3,7 +3,9 @@ import tiktoken
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from models import GPTModel
+import math
 import os
+import time
 
 
 # TEMP: GPT-2 weight loading helpers
@@ -12,29 +14,52 @@ def assign(left, right):
         raise ValueError(f"Shape mismatch. Left: {left.shape}, Right: {right.shape}")
     return torch.nn.Parameter(torch.tensor(right))
 
+# pretrain.py writes here; posttrain.py starts from it. Under data/ so both
+# Beekeeper projects see it.
+PRETRAIN_CHECKPOINT = "data/checkpoints/pretrain/model.pth"
+POSTTRAIN_CHECKPOINT = "data/checkpoints/posttrain/model.pth"
+
+
 class LanguageModel:
 
-    def __init__(self, gpt_config, train_loader=None, val_loader=None):
+    def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth"):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # TF32 for any matmul still in fp32 (outside autocast): ~free speed on Ampere+.
+        torch.set_float32_matmul_precision("high")
         self.model = GPTModel(cfg=gpt_config)
+        self.model.to(self.device)  # before the optimizer: fused AdamW needs params on the GPU
         self.optimizer = torch.optim.AdamW(
                          self.model.parameters(),
-                         lr=0.0004, weight_decay=0.1
+                         lr=0.0006, weight_decay=0.1,
+                         fused=self.device.type == "cuda"
                         )
-        self.model.to(self.device)
         self.train_loader = train_loader
         self.val_loader  = val_loader
 
         self.tokenizer = tiktoken.get_encoding("gpt2")
 
-        self.checkpoint_path = "checkpoints/model.pth"
+        self.checkpoint_path = checkpoint_path
 
 
-    def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2):
+    def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
+              warmup_steps=2000, min_lr_ratio=0.1):
+
+        # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
+        # The schedule needs the run length up front: num_epochs is the budget.
+        total_steps = num_epochs * len(self.train_loader)
+
+        def lr_factor(step):
+            if step < warmup_steps:
+                return (step + 1) / warmup_steps
+            progress = min(1.0, (step - warmup_steps) / max(1, total_steps - warmup_steps))
+            return min_lr_ratio + (1 - min_lr_ratio) * 0.5 * (1 + math.cos(math.pi * progress))
+
+        scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_factor)
 
         train_losses, val_losses, track_tokens_seen = [], [], []
         tokens_seen, global_step = 0, -1
+        last_eval_time, last_eval_tokens = time.time(), 0
         best_val_loss, epochs_without_improvement = float("inf"), 0
         writer = SummaryWriter(log_dir="runs")
 
@@ -48,6 +73,7 @@ class LanguageModel:
                     loss = self.calc_loss_batch(input_batch, target_batch)
                     loss.backward()
                     self.optimizer.step()
+                    scheduler.step()
                     tokens_seen += input_batch.numel()
                     global_step += 1
                     epoch_loss_sum += loss.item()
@@ -61,14 +87,20 @@ class LanguageModel:
                         track_tokens_seen.append(tokens_seen)
                         writer.add_scalar("loss/train_eval", train_loss, global_step)
                         writer.add_scalar("loss/val", val_loss, global_step)
+                        writer.add_scalar("lr", scheduler.get_last_lr()[0], global_step)
+                        tok_per_sec = (tokens_seen - last_eval_tokens) / (time.time() - last_eval_time)
+                        writer.add_scalar("throughput/tokens_per_sec", tok_per_sec, global_step)
                         print(f"Ep {epoch+1} (Step {global_step:06d}): "
                               f"Train loss {train_loss:.3f}, "
-                              f"Val loss {val_loss:.3f}"
+                              f"Val loss {val_loss:.3f}, "
+                              f"LR {scheduler.get_last_lr()[0]:.2e}, "
+                              f"{tok_per_sec:,.0f} tok/s"
                               )
 
                         sample = self.generate_and_print_sample(start_context)
                         writer.add_text("samples/generated_text", sample, global_step)
                         writer.flush()
+                        last_eval_time, last_eval_tokens = time.time(), tokens_seen
 
                 epoch_train_loss = epoch_loss_sum / epoch_batch_count
                 # Full val set: this number drives checkpointing and early stopping.
@@ -106,7 +138,7 @@ class LanguageModel:
         if checkpoint_path == None:
             checkpoint_path = self.checkpoint_path
 
-        os.makedirs("checkpoints", exist_ok=True)
+        os.makedirs(os.path.dirname(checkpoint_path) or ".", exist_ok=True)
         torch.save(self.model.state_dict(), checkpoint_path)
         print(f"Saved model checkpoint at {checkpoint_path}")
 
@@ -182,9 +214,13 @@ class LanguageModel:
         input_batch = input_batch.to(self.device)
         target_batch = target_batch.to(self.device)
 
-        logits = self.model(input_batch)
+        # bf16 autocast: weights stay fp32, matmuls run in bf16. No GradScaler needed
+        # (unlike fp16). Loss is computed in fp32.
+        with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16,
+                            enabled=self.device.type == "cuda"):
+            logits = self.model(input_batch)
         loss = torch.nn.functional.cross_entropy(
-                logits.flatten(0, 1), target_batch.flatten()
+                logits.float().flatten(0, 1), target_batch.flatten()
                 )
         return loss
 

@@ -19,12 +19,17 @@ The pipeline is **sources → mix → build → train**:
 python scripts/prepare_public_domain_corpus.py   # -> data/sources/books/
 python scripts/prepare_python_corpus.py          # -> data/sources/python_docs/
 python scripts/generate_python_qa.py             # -> data/sources/python_qa/
+python scripts/prepare_code_corpus.py            # -> data/sources/code_docs/
+python scripts/prepare_linux_manpages.py          # -> data/sources/linux_manpages/
+python scripts/generate_code_linux_qa.py          # -> data/sources/{code,linux}_qa/
+python scripts/generate_large_qa.py               # -> data/sources/{code,linux}_curriculum/
+python scripts/prepare_python_books.py           # -> data/sources/python_books/
 python scripts/prepare_fineweb_edu.py            # -> data/sources/fineweb_edu/
-python scripts/build_mix.py pretrain_v2          # -> data/build/pretrain_v2/
+python scripts/build_mix.py pretrain_v5          # -> data/build/pretrain_v5/
 scripts/sync_data.sh                             # push data/ to the lab box
 ```
 
-`scripts/train.py` names a mix, and `make_loaders` in `dataset.py` memory-maps
+`scripts/pretrain.py` names a mix, and `make_loaders` in `dataset.py` memory-maps
 its `.bin` files. It refuses to train if `mixes/<mix>.json` changed after the
 last build.
 
@@ -75,6 +80,18 @@ to add to them.
   FineWeb-Edu and `python_qa` (repeat 5). Because the split depends only on
   ids, books/python_docs val units are identical in both, so a v2 model can be
   scored on `build/pretrain_v1/val.bin` for a like-for-like comparison.
+- `pretrain_v6` (current) is v5 + `python_books` + 4,024 tutor_qa conversations.
+- `pretrain_v5` is v4 with python_docs grown from 9 to 33 projects
+  (41M -> 139M characters; ~20% of train tokens) and 1,800 tutor_qa
+  conversations. `scripts/eval_frozen.py` is pinned to the original 9 projects
+  so its benchmark is unchanged.
+- `pretrain_v4` drops the templated `*_curriculum` sources (14
+  fill-in-the-blank templates; the model learns the template, not the
+  subject) and adds `tutor_qa`. All hand-authored Q&A is repeated 3x.
+- `pretrain_v3` removes the five identical copies of each Python Q&A record and
+  adds each instructional record once. It adds real Rust/C++ educational code,
+  Linux interface documentation, and a large distinct Python/Rust/C++/Linux
+  worked-problem curriculum.
 
 ## Sources
 
@@ -116,3 +133,88 @@ dump for attribution.
 prediction, function writing and debugging. The generator checks for
 duplicates and parses every fenced Python block with `ast.parse`. Released
 under CC0-1.0.
+
+### code_docs: Rust and C++ documentation/source
+
+Revision-pinned snapshots of The Rust Programming Language (including runnable
+listings), the MIT-licensed {fmt} library, and the MIT-licensed The Algorithms
+C++ collection. Tests, build output and vendored material are excluded; exact
+duplicates are removed. `provenance.json` records revisions and archive hashes,
+and `licenses/` retains the upstream license texts.
+
+### linux_manpages: Linux kernel/userspace interfaces
+
+Linux man-pages 6.19, downloaded from kernel.org with a pinned SHA-256 and
+rendered from roff to readable UTF-8 with `groff` and `col`. Redirect-only alias
+pages are omitted. This covers system calls, library interfaces, protocols,
+file formats, administration interfaces, and `capabilities(7)`. Licensing is
+declared per page upstream; all release license texts are retained.
+
+### code_qa and linux_qa: authored instruction examples
+
+Distinct CC0 conversations generated deterministically by
+`generate_code_linux_qa.py`; none are repeated in `pretrain_v3`. Code examples
+cover Python, Rust, and C++ concepts, implementation, debugging, and
+cross-language comparisons. Linux examples cover operations, diagnostics,
+shell safety, permissions, services, networking, containers, and the kernel
+capability model. Python fenced blocks are parsed during generation.
+
+### code_curriculum and linux_curriculum: large worked-problem sets
+
+`generate_large_qa.py` adds more than ten thousand balanced Python, Rust, and
+C++ tracing, implementation, debugging, and testing problems, plus thousands
+of Linux filesystem, journal, socket, permissions, shell-safety, and capability
+scenarios. Each question/answer pair is unique, deterministic, CC0, and appears
+only once in `pretrain_v3`. Numeric outputs are computed by the generator and
+Python code is parsed before any records are written.
+
+### tutor_qa: Codex-authored tutor conversations
+
+1,800 conversations (36 batches of 50 across Python, Rust, C++ and Linux topics), each written individually by Codex (`codex exec`, one
+headless session per batch). `scripts/tutor_qa/` holds the batch plan
+(`batches.json`: 60 topics x 2 levels), the prompt, the runner, and
+`validate.py`, which every batch must pass: schema, unique ids and questions,
+<= 230 GPT-2 tokens per rendered conversation (context is 256), Python in
+answers parses, Rust in answers compiles (`rustc`), C++ in answers compiles
+(`g++ -std=c++20 -fsyntax-only`). Buggy code in debugging *questions* is
+intentional and unchecked. Batches were generated in a staging directory and
+copied here once valid; the remaining 84 planned batches are unrun (Codex usage limit). CC0-1.0.
+
+### python_books: shareable Python books and courses
+
+Seven sources pinned to commits, each with its license statement verified in
+the archive and kept in `licenses/`: Practical Python Programming and Advanced
+Python Mastery (Beazley, CC BY-SA 4.0), A Byte of Python (CC BY-SA 4.0), Dive
+Into Python 3 (CC BY-SA 3.0; HTML converted to text), the Exercism Python track
+concept docs and exemplar solutions (MIT), learn-python (MIT), and
+TheAlgorithms/Python (MIT). NonCommercial/NoDerivs books (Think Python, py4e,
+Hitchhiker's Guide, Python Data Science Handbook text) are deliberately
+excluded so the data stays shareable. ~7.5M characters.
+
+### chat: Codex-authored everyday conversations
+
+Conversational behavior the code-heavy sources don't teach: greetings and short
+replies, bobgpt's identity and limits (no internet, clock or memory), saying
+"I don't know", clarifying questions, handling corrections, multi-turn
+follow-ups, format instructions, everyday explanations and writing help, and
+declining harmful requests without refusing safe ones. `scripts/chat/` holds the
+plan (30 themes x 50) and prompt; it runs on the tutor_qa tooling with
+`MAX_TOKENS=400`. CC0-1.0.
+
+### oasst2: human-written conversations
+
+OpenAssistant OASST2 (Apache-2.0), English only: from each conversation tree,
+the path through the volunteers' top-ranked replies. Deleted, failed-review,
+synthetic and toxic messages are dropped, as are conversations naming Open
+Assistant or LAION. Cut to <= 1000 tokens at an assistant-turn boundary.
+5,098 conversations, ~2.1M tokens. `scripts/prepare_oasst2.py`.
+
+### smoltalk: rewriting and constraint following
+
+Hash-selected samples of SmolTalk's smol-rewrite (12,000) and smol-constraints
+(8,000), ~5.9M tokens. Apache-2.0, generated with Qwen2.5-72B-Instruct: **if a
+model trained on this is distributed, its documentation must say "Built with
+Qwen"** (Qwen license). The Llama-3.1-generated subsets (smol-magpie-ultra,
+everyday-conversations) are excluded because Llama's license would require the
+model name to start with "Llama"; smol-summarize is excluded (CNN/DailyMail
+articles). `scripts/prepare_smoltalk.py`.

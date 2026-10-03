@@ -7,4 +7,5 @@ LOCAL="$(readlink -f "$(dirname "$0")/../data")/"
 REMOTE=lab:/data/datasets/bobgptv1/
 
 ssh "${REMOTE%%:*}" mkdir -p "${REMOTE#*:}"
-rsync -a --partial --info=progress2 "$LOCAL" "$REMOTE"
+# checkpoints/ is written on lab by training runs; never overwrite it from here.
+rsync -a --partial --info=progress2 --exclude /checkpoints/ "$LOCAL" "$REMOTE"

@@ -1,0 +1,60 @@
+{
+  "description": "pretrain_v6 + conversation: Codex chat (17 themes) x3, OASST2 human conversations x2, SmolTalk rewrite/constraints x1; tutor_qa grown to 5,773. Hand-authored Q&A x3.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {
+      "name": "books",
+      "repeat": 1
+    },
+    {
+      "name": "python_docs",
+      "repeat": 1
+    },
+    {
+      "name": "python_books",
+      "repeat": 1
+    },
+    {
+      "name": "code_docs",
+      "repeat": 1
+    },
+    {
+      "name": "linux_manpages",
+      "repeat": 1
+    },
+    {
+      "name": "fineweb_edu",
+      "repeat": 1,
+      "val_fraction": 0.01
+    },
+    {
+      "name": "python_qa",
+      "repeat": 3
+    },
+    {
+      "name": "code_qa",
+      "repeat": 3
+    },
+    {
+      "name": "linux_qa",
+      "repeat": 3
+    },
+    {
+      "name": "tutor_qa",
+      "repeat": 3
+    },
+    {
+      "name": "chat",
+      "repeat": 3
+    },
+    {
+      "name": "oasst2",
+      "repeat": 2
+    },
+    {
+      "name": "smoltalk",
+      "repeat": 1
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "description": "pretrain_v4 with the expanded python_docs (33 projects) and all Codex tutor_qa batches; hand-authored Q&A x3.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "books", "repeat": 1},
+    {"name": "python_docs", "repeat": 1},
+    {"name": "code_docs", "repeat": 1},
+    {"name": "linux_manpages", "repeat": 1},
+    {"name": "fineweb_edu", "repeat": 1, "val_fraction": 0.01},
+    {"name": "python_qa", "repeat": 3},
+    {"name": "code_qa", "repeat": 3},
+    {"name": "linux_qa", "repeat": 3},
+    {"name": "tutor_qa", "repeat": 3}
+  ]
+}

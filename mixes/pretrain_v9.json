@@ -1,0 +1,56 @@
+{
+  "description": "pretrain_v8 with chat in the bobgpt voice (30 restyled + 40 new themes, x4), OASST2 x1, SmolTalk dropped (its email/constraint style dominated run 25's chat).",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {
+      "name": "books",
+      "repeat": 1
+    },
+    {
+      "name": "python_docs",
+      "repeat": 1
+    },
+    {
+      "name": "python_books",
+      "repeat": 1
+    },
+    {
+      "name": "code_docs",
+      "repeat": 1
+    },
+    {
+      "name": "linux_manpages",
+      "repeat": 1
+    },
+    {
+      "name": "fineweb_edu",
+      "repeat": 1,
+      "val_fraction": 0.01
+    },
+    {
+      "name": "python_qa",
+      "repeat": 3
+    },
+    {
+      "name": "code_qa",
+      "repeat": 3
+    },
+    {
+      "name": "linux_qa",
+      "repeat": 3
+    },
+    {
+      "name": "tutor_qa",
+      "repeat": 3
+    },
+    {
+      "name": "chat",
+      "repeat": 4
+    },
+    {
+      "name": "oasst2",
+      "repeat": 1
+    }
+  ]
+}
