@@ -10,7 +10,8 @@ Shell files under permissive licenses, drops obvious junk (generated files,
 minified/data blobs, very long lines), removes exact duplicates, and stops each
 language at a GPT-2 token cap.
 
-Output is data/sources/github_code/<language>.jsonl, one record per file,
+Output is data/sources/github_<language>/github_code_clean.jsonl (python,
+cpp, rust, shell), one record per file,
 ready for scripts/build_mix.py. Shards are cached by huggingface_hub; rerunning
 with the same arguments gives the same files.
 """
@@ -54,14 +55,16 @@ def looks_ok(code: str) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--shards", default="0-29", help="shard range, e.g. 0-29")
-    parser.add_argument("--output-dir", type=Path,
-                        default=Path(__file__).resolve().parent.parent / "data" / "sources" / "github_code")
+    parser.add_argument("--sources-dir", type=Path,
+                        default=Path(__file__).resolve().parent.parent / "data" / "sources")
     args = parser.parse_args()
 
     enc = tiktoken.get_encoding("gpt2")
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    outs = {lang: (args.output_dir / f"{lang.lower().replace('+', 'p')}.jsonl").open("w", encoding="utf-8")
-            for lang in CAPS}
+    outs = {}
+    for lang in CAPS:
+        out_dir = args.sources_dir / f"github_{lang.lower().replace('+', 'p')}"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        outs[lang] = (out_dir / "github_code_clean.jsonl").open("w", encoding="utf-8")
     tokens = dict.fromkeys(CAPS, 0)
     files = dict.fromkeys(CAPS, 0)
     seen: set[bytes] = set()

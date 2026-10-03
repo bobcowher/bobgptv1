@@ -42,6 +42,12 @@ def is_val(unit_id: str, val_fraction: float) -> bool:
     return bucket < val_fraction * HASH_BUCKETS
 
 
+def is_kept(unit_id: str, fraction: float) -> bool:
+    """Hash-based subsample, salted so it is independent of the val split."""
+    bucket = int(hashlib.sha256(f"keep:{unit_id}".encode()).hexdigest()[:8], 16) % 1_000_000
+    return bucket < fraction * 1_000_000
+
+
 def record_text(record: dict) -> str:
     if "messages" in record:
         return render(record["messages"])
@@ -103,7 +109,9 @@ def build(mix_name: str) -> None:
         name, repeat = source["name"], source.get("repeat", 1)
         # A big source can take a smaller val share so the full-val pass stays fast.
         val_fraction = source.get("val_fraction", mix["val_fraction"])
-        units = list(load_units(name, mix["chunk_chars"]))
+        # fraction < 1 keeps a fixed hash-selected share of a big source's units.
+        fraction = source.get("fraction", 1.0)
+        units = [u for u in load_units(name, mix["chunk_chars"]) if is_kept(u[0], fraction)]
         val_texts = [text for unit_id, text in units if is_val(unit_id, val_fraction)]
         train_texts = [text for unit_id, text in units if not is_val(unit_id, val_fraction)]
         del units
@@ -116,13 +124,14 @@ def build(mix_name: str) -> None:
 
         summary[name] = {
             "repeat": repeat,
+            "fraction": fraction,
             "train_units": len(train_texts),
             "val_units": len(val_texts),
             "train_tokens": sum(map(len, train_tokens)) * repeat,
             "val_tokens": sum(map(len, val_tokens)),
         }
         s = summary[name]
-        print(f"{name:<12} units train {s['train_units']:>6,} val {s['val_units']:>5,}   "
+        print(f"{name:<14} units train {s['train_units']:>6,} val {s['val_units']:>5,}   "
               f"tokens train {s['train_tokens']:>11,} val {s['val_tokens']:>10,}")
 
     out_dir = BUILD_DIR / mix_name
