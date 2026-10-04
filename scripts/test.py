@@ -47,8 +47,11 @@ PROMPTS = {
 }
 
 
+# python scripts/test.py [checkpoint]   (default checkpoints/model.pth)
+# Seeded, so two checkpoints get the same sampling draws and can be compared side by side.
+torch.manual_seed(0)
 model = LanguageModel(gpt_config=GPT_CONFIG_124M)
-model.load_the_model()
+model.load_the_model(sys.argv[1] if len(sys.argv) > 1 else None)
 model.model.eval()
 
 context_size = model.model.pos_emb.weight.shape[0]
