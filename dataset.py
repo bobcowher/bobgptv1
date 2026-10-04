@@ -28,6 +28,30 @@ class GPTDatasetV1(Dataset):
             chunk = torch.from_numpy(chunk.astype(np.int64))
         return chunk[:-1], chunk[1:]
 
+class MaskedGPTDataset(Dataset):
+    """GPTDatasetV1 for post-training builds: targets the mask zeroes out become -100,
+    which cross_entropy ignores, so only assistant tokens (and replay text) train.
+    Windows with no trainable target are dropped -- their loss would be NaN."""
+
+    def __init__(self, token_ids, mask, max_length):
+        self.token_ids = token_ids
+        self.mask = mask
+        self.max_length = max_length
+        n = (len(token_ids) - 1) // max_length
+        trainable = np.asarray(mask[1:n * max_length + 1]).reshape(n, max_length).any(axis=1)
+        self.starts = np.flatnonzero(trainable) * max_length
+
+    def __len__(self):
+        return len(self.starts)
+
+    def __getitem__(self, idx):
+        start = int(self.starts[idx])
+        chunk = torch.from_numpy(self.token_ids[start:start + self.max_length + 1].astype(np.int64))
+        keep = torch.from_numpy(self.mask[start + 1:start + self.max_length + 1].astype(bool))
+        target = chunk[1:].masked_fill(~keep, -100)
+        return chunk[:-1], target
+
+
 def create_dataloader_v1(txt, batch_size=4, max_length=256,
                          stride=128, shuffle=True, drop_last=True,
                          num_workers=0):
@@ -75,16 +99,22 @@ def make_loaders(mix_name, cfg, batch_size=2, num_workers=0):
     train_ids = np.memmap(build_dir / "train.bin", dtype=np.uint16, mode="r")
     val_ids = np.memmap(build_dir / "val.bin", dtype=np.uint16, mode="r")
 
-    train_dataset = GPTDatasetV1(
-            train_ids,
-            max_length=cfg["context_length"],
-            stride=cfg["context_length"]
-            )
-    val_dataset = GPTDatasetV1(
-            val_ids,
-            max_length=cfg["context_length"],
-            stride=cfg["context_length"]
-            )
+    if (build_dir / "train_mask.bin").exists():  # post-training build (loss_mask)
+        train_mask = np.memmap(build_dir / "train_mask.bin", dtype=np.uint8, mode="r")
+        val_mask = np.memmap(build_dir / "val_mask.bin", dtype=np.uint8, mode="r")
+        train_dataset = MaskedGPTDataset(train_ids, train_mask, cfg["context_length"])
+        val_dataset = MaskedGPTDataset(val_ids, val_mask, cfg["context_length"])
+    else:
+        train_dataset = GPTDatasetV1(
+                train_ids,
+                max_length=cfg["context_length"],
+                stride=cfg["context_length"]
+                )
+        val_dataset = GPTDatasetV1(
+                val_ids,
+                max_length=cfg["context_length"],
+                stride=cfg["context_length"]
+                )
 
     train_loader = _create_dataloader(
             train_dataset,

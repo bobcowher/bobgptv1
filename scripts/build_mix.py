@@ -13,6 +13,11 @@ Split rule: a unit goes to val when a hash of its id lands in the bottom
 between train and val. Documents longer than `chunk_chars` are cut into parts
 at paragraph breaks first, and each part is hashed on its own -- otherwise the
 25 books would split as 2-3 whole novels in val.
+
+Post-training mixes set "loss_mask": true. The build then also writes
+{train,val}_mask.bin (uint8, one byte per token): 1 where the model should learn
+the token (assistant replies, see chat_template.render_with_spans, and all of any
+plain-text source), 0 for system/user turns. Chat records are not chunked.
 """
 
 from __future__ import annotations
@@ -29,7 +34,7 @@ import tiktoken
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from chat_template import render
+from chat_template import render, render_with_spans
 
 SOURCES_DIR = ROOT / "data" / "sources"
 BUILD_DIR = ROOT / "data" / "build"
@@ -54,6 +59,13 @@ def record_text(record: dict) -> str:
     return record["text"]
 
 
+def record_text_spans(record: dict):
+    """(text, trainable char spans); spans is None when every token is trainable."""
+    if "messages" in record:
+        return render_with_spans(record["messages"])
+    return record["text"], None
+
+
 def encode(tokenizer, texts: list[str], eot: int, batch: int = 10_000) -> list[np.ndarray]:
     """Token ids per document, EOT-terminated, as uint16 arrays (Python int lists won't fit in RAM)."""
     docs = []
@@ -62,6 +74,23 @@ def encode(tokenizer, texts: list[str], eot: int, batch: int = 10_000) -> list[n
             ids.append(eot)
             docs.append(np.array(ids, dtype=np.uint16))
     return docs
+
+
+def encode_masks(tokenizer, units: list[tuple[str, list | None]], docs: list[np.ndarray]) -> list[np.ndarray]:
+    """Per-token loss masks matching encode()'s output: a token is trainable when it starts in a span."""
+    masks = []
+    for (text, spans), ids in zip(units, docs):
+        if spans is None:
+            masks.append(np.ones(len(ids), dtype=np.uint8))
+            continue
+        _, offsets = tokenizer.decode_with_offsets(ids[:-1].tolist())
+        starts = np.array(offsets)
+        mask = np.zeros(len(ids), dtype=np.uint8)
+        for a, b in spans:
+            mask[:-1] |= (starts >= a) & (starts < b)
+        mask[-1] = 1  # the EOT after END_MARKER
+        masks.append(mask)
+    return masks
 
 
 def chunk(text: str, chunk_chars: int) -> list[str]:
@@ -76,8 +105,11 @@ def chunk(text: str, chunk_chars: int) -> list[str]:
     return parts
 
 
-def load_units(source: str, chunk_chars: int):
-    """Yield (unit_id, text) for every document (or document part) in a source."""
+def load_units(source: str, chunk_chars: int, with_spans: bool = False):
+    """Yield (unit_id, text) for every document (or document part) in a source.
+
+    with_spans yields (unit_id, (text, spans)) instead, and never chunks chat records.
+    """
     files = sorted((SOURCES_DIR / source).glob("*.jsonl"))
     if not files:
         raise SystemExit(f"No JSONL files in {SOURCES_DIR / source}")
@@ -89,6 +121,18 @@ def load_units(source: str, chunk_chars: int):
                 if record["id"] in ids:
                     raise SystemExit(f"Duplicate id {record['id']!r} in source {source}")
                 ids.add(record["id"])
+                if with_spans:
+                    text, spans = record_text_spans(record)
+                    if spans is not None:
+                        yield record["id"], (text, spans)
+                        continue
+                    parts = [(p, None) for p in chunk(text, chunk_chars)]
+                    if len(parts) == 1:
+                        yield record["id"], parts[0]
+                    else:
+                        for i, part in enumerate(parts):
+                            yield f"{record['id']}#part{i:03d}", part
+                    continue
                 parts = chunk(record_text(record), chunk_chars)
                 if len(parts) == 1:
                     yield record["id"], parts[0]
@@ -102,8 +146,10 @@ def build(mix_name: str) -> None:
     mix = json.loads(mix_path.read_text(encoding="utf-8"))
     tokenizer = tiktoken.get_encoding("gpt2")
     eot = tokenizer.eot_token
+    loss_mask = mix.get("loss_mask", False)
 
     splits = {"train": [], "val": []}
+    masks = {"train": [], "val": []}
     summary = {}
     for source in mix["sources"]:
         name, repeat = source["name"], source.get("repeat", 1)
@@ -111,16 +157,21 @@ def build(mix_name: str) -> None:
         val_fraction = source.get("val_fraction", mix["val_fraction"])
         # fraction < 1 keeps a fixed hash-selected share of a big source's units.
         fraction = source.get("fraction", 1.0)
-        units = [u for u in load_units(name, mix["chunk_chars"]) if is_kept(u[0], fraction)]
-        val_texts = [text for unit_id, text in units if is_val(unit_id, val_fraction)]
-        train_texts = [text for unit_id, text in units if not is_val(unit_id, val_fraction)]
+        units = [u for u in load_units(name, mix["chunk_chars"], loss_mask) if is_kept(u[0], fraction)]
+        val_units = [unit for unit_id, unit in units if is_val(unit_id, val_fraction)]
+        train_units = [unit for unit_id, unit in units if not is_val(unit_id, val_fraction)]
         del units
+        val_texts = [u[0] for u in val_units] if loss_mask else val_units
+        train_texts = [u[0] for u in train_units] if loss_mask else train_units
 
         # Val is never repeated: it measures the data, not the mix weights.
         val_tokens = encode(tokenizer, val_texts, eot)
         train_tokens = encode(tokenizer, train_texts, eot)
         splits["val"].extend(val_tokens)
         splits["train"].extend(train_tokens * repeat)
+        if loss_mask:
+            masks["val"].extend(encode_masks(tokenizer, val_units, val_tokens))
+            masks["train"].extend(encode_masks(tokenizer, train_units, train_tokens) * repeat)
 
         summary[name] = {
             "repeat": repeat,
@@ -143,6 +194,10 @@ def build(mix_name: str) -> None:
         with (out_dir / f"{split}.bin").open("wb") as f:
             for i in order:
                 docs[i].tofile(f)
+        if loss_mask:
+            with (out_dir / f"{split}_mask.bin").open("wb") as f:
+                for i in order:
+                    masks[split][i].tofile(f)
 
     manifest = {
         "mix": mix,

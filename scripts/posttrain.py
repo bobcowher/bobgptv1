@@ -8,17 +8,44 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import GPT_CONFIG_124M
+from dataset import make_loaders
 from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT, POSTTRAIN_CHECKPOINT
 
 
-# Post-training starts from the pretrained weights. Fail loudly if they're
-# missing or don't fit: fine-tuning a random model would look like a run.
-if not os.path.exists(PRETRAIN_CHECKPOINT):
-    sys.exit(f"No pretrained checkpoint at {PRETRAIN_CHECKPOINT}; run scripts/pretrain.py first.")
+# Post-training starts from pretrained weights: pretrain.py's output by default,
+# or any checkpoint named by INIT_CHECKPOINT (e.g. an older run's model).
+init_checkpoint = os.environ.get("INIT_CHECKPOINT", PRETRAIN_CHECKPOINT)
 
-model = LanguageModel(gpt_config=GPT_CONFIG_124M, checkpoint_path=POSTTRAIN_CHECKPOINT)
-model.model.load_state_dict(torch.load(PRETRAIN_CHECKPOINT, map_location=model.device))
-print(f"Loaded pretrained weights from {PRETRAIN_CHECKPOINT}")
+# Fail loudly if the weights are missing or don't fit: fine-tuning a random
+# model would look like a run.
+if not os.path.exists(init_checkpoint):
+    sys.exit(f"No pretrained checkpoint at {init_checkpoint}; run scripts/pretrain.py first.")
 
-# TODO: Q&A + chat data with loss on assistant tokens only, lower LR, fresh optimizer.
-sys.exit("posttrain.py: training loop not written yet.")
+# Q&A + chat with loss on assistant replies only (see mixes/posttrain_v1.json).
+# Batch 4: batch 8 at 1024 context doesn't fit the 3060's 12GB.
+train_loader, val_loader = make_loaders("posttrain_v1", GPT_CONFIG_124M, batch_size=4)
+
+# Fresh optimizer, LR well below pretraining's 6e-4 peak: adapt the format
+# without overwriting what pretraining learned.
+model = LanguageModel(gpt_config=GPT_CONFIG_124M,
+                      train_loader=train_loader,
+                      val_loader=val_loader,
+                      checkpoint_path=POSTTRAIN_CHECKPOINT,
+                      lr=1e-4)
+model.model.load_state_dict(torch.load(init_checkpoint, map_location=model.device))
+print(f"Loaded pretrained weights from {init_checkpoint}")
+
+# The number to beat: the pretrained model's assistant-token loss on the same val set.
+model.model.eval()
+with torch.no_grad():
+    print(f"Val loss before post-training: {model.calc_loss_loader(val_loader):.3f}")
+model.model.train()
+
+# ~3.6M tokens per epoch. The best epoch (full val loss) is what gets saved,
+# so extra epochs only cost time; patience=1 stops at the first that overfits.
+model.train(num_epochs=3,
+            eval_freq=200,
+            eval_iter=20,
+            start_context="### Question\nWhat is the difference between a list and a tuple in Python?\n\n### Answer\n",
+            patience=1,
+            warmup_steps=100)
