@@ -1,40 +1,59 @@
 #!/bin/bash
-# Updates and restarts the bobgpt API on lab. Run it on lab:
-#   ssh lab /opt/bobgpt/src/deploy.sh
-# Host paths come from /etc/bobgpt/host.env (written by the lab_server Ansible repo).
+# Deploy the bobgpt API to lab. Run from this repo on the desktop:
+#   ./deploy.sh
+# Deploys what is on origin/$BRANCH_NAME (push first). Host paths come from
+# lab's /etc/bobgpt/host.env, written by the lab_server Ansible repo.
+set -uo pipefail
+
+BRANCH_NAME="develop"
+SSH_TARGET="lab"
+
+# Deploying origin, not this checkout: warn if local commits haven't been pushed.
+git fetch -q origin "$BRANCH_NAME"
+AHEAD=$(git rev-list --count "origin/${BRANCH_NAME}..${BRANCH_NAME}" 2>/dev/null || echo 0)
+if [ "$AHEAD" -gt 0 ]; then
+    echo "Warning: local ${BRANCH_NAME} is ${AHEAD} commit(s) ahead of origin; those won't be deployed."
+fi
+
+echo "Deploying origin/${BRANCH_NAME} ($(git log --oneline -1 "origin/${BRANCH_NAME}")) to ${SSH_TARGET}"
+
+# The checkout on lab is deploy-only, so reset --hard (as beekeeper's deploy does).
+# The venv is kept between deploys: rebuilding it would re-download torch every time.
+# checkpoints/ is gitignored; on lab it links to the shared checkpoint tree.
+ssh "$SSH_TARGET" "BRANCH_NAME=${BRANCH_NAME} bash -s" <<'EOF'
 set -euo pipefail
-
-# The branch lab serves. Work reaches it when it's ready for lab.
-BRANCH=develop
-
 source /etc/bobgpt/host.env
 cd "$BOBGPT_SRC"
-
-# --ff-only: if the checkout on lab has diverged, stop rather than merge.
 git fetch origin
-git checkout "$BRANCH"
-git pull --ff-only origin "$BRANCH"
-
-# Build the venv once; later deploys only install what changed.
+git checkout "$BRANCH_NAME"
+git reset --hard "origin/$BRANCH_NAME"
 [ -x "$BOBGPT_VENV/bin/python" ] || "$BOBGPT_PYTHON" -m venv "$BOBGPT_VENV"
 "$BOBGPT_VENV/bin/pip" install -q -r requirements-serve.txt
-
-# checkpoints/ is gitignored; on lab it links to the shared checkpoint tree.
 ln -sfn "$BOBGPT_CHECKPOINT_ROOT" checkpoints
-
 sudo systemctl restart bobgpt
+EOF
+SSH_RC=$?
 
-# systemctl reports success even if the server then dies loading the model,
-# so wait for the API to answer. The model loads at startup, so a 200 here
-# means the weights loaded.
-for _ in $(seq 60); do
-    if curl -sf -o /dev/null "http://$BOBGPT_HOST:$BOBGPT_PORT/v1/models"; then
-        echo "bobgpt is up on $BOBGPT_HOST:$BOBGPT_PORT ($(git log --oneline -1))"
+if [ $SSH_RC -ne 0 ]; then
+    echo "Deploy failed (exit ${SSH_RC}). bobgpt may be left on the old code or stopped." >&2
+    echo "Check with: ssh ${SSH_TARGET} sudo systemctl status bobgpt" >&2
+    exit $SSH_RC
+fi
+
+# systemctl restart returning 0 doesn't mean the model loaded, so wait for the
+# API to answer. It binds where the desktop can't reach, so check from lab.
+echo -n "Waiting for bobgpt to answer"
+for _ in $(seq 1 30); do
+    if ssh "$SSH_TARGET" 'source /etc/bobgpt/host.env && curl -sf -o /dev/null "http://$BOBGPT_HOST:$BOBGPT_PORT/v1/models"' 2>/dev/null; then
+        echo " ok"
+        echo "Deployed ${BRANCH_NAME}."
         exit 0
     fi
-    sleep 1
+    echo -n "."
+    sleep 2
 done
 
-echo "bobgpt did not answer within 60s. Last log lines:"
-sudo journalctl -u bobgpt -n 30 --no-pager
+echo
+echo "Deploy ran but bobgpt is not answering." >&2
+echo "Check with: ssh ${SSH_TARGET} sudo journalctl -u bobgpt -n 50" >&2
 exit 1
