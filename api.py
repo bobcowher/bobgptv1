@@ -3,9 +3,11 @@ from pydantic import BaseModel, Field
 import time
 import os
 import sys
+import uuid
 from languagemodel import *
 from chat_template import *
 from fastapi.sse import EventSourceResponse, ServerSentEvent
+from fastapi.responses import StreamingResponse
 from config import GPT_CONFIG_124M
 
 
@@ -77,7 +79,7 @@ class V1ChatCompletionsResponse(BaseModel):
 @app.post("/v1/chat/completions", response_model=V1ChatCompletionsResponse, status_code=200)
 def get_chat_completion(req: V1ChatCompletionsRequest):
     if req.stream:
-        return get_chat_completion_streaming(req) 
+        return StreamingResponse(get_chat_completion_streaming(req), media_type="text/event-stream")
     else:
         return get_chat_completion_block(req)
 
@@ -86,8 +88,18 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
     stop = False
     total_tokens = 0
     stop_reason = None
+    id = f"chatcmpl-{uuid.uuid4().hex}"
+    created = int(time.time())
 
     encoded = get_encoded_messages(req.messages)
+
+    chunk = get_chunk(id=id,
+                      created=created,
+                      model=req.model,
+                      delta={"role": "assistant", "content": ""},
+                      stop_reason=stop_reason)
+
+    yield f"data: {chunk}\n\n"
 
     with torch.no_grad():
         for token_id in model.generate_streaming(
@@ -109,33 +121,31 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
                 stop = True 
                 stop_reason = "stop" 
 
-            if total_tokens > req.max_tokens:
+            if total_tokens >= req.max_tokens:
                 stop = True
                 stop_reason = "length"
 
-
-            choices = [
-                        {
-                            "index": 0,
-                            "message": {
-                                "role": "assistant",
-                                "content": completion,
-                                "refusal": None
-                                },
-                            "logprobs": None,
-                            "finish_reason": stop_reason
-                        } 
-                    ]
-
             if stop:
-                yield ServerSentEvent(raw_data="[DONE]")
+                break
 
-            yield V1ChatCompletionsResponse(id="5",
-                                            object="chat.completion",
-                                            created=int(time.time()),
-                                            model=req.model,
-                                            choices=choices
-                                            )
+            chunk = get_chunk(id=id,
+                              created=created,
+                              model=req.model,
+                              delta={"content": completion},
+                              stop_reason=None)
+
+            yield f"data: {chunk}\n\n"
+
+
+        chunk = get_chunk(id=id,
+                          created=created,
+                          model=req.model,
+                          delta={},
+                          stop_reason=stop_reason)
+
+        yield f"data: {chunk}\n\n"
+        
+        yield "data: [DONE]\n\n"
             
 
 
@@ -144,6 +154,8 @@ def get_chat_completion_block(req: V1ChatCompletionsRequest):
     stop_reason = "length"
 
     encoded = get_encoded_messages(req.messages)
+
+    created = int(time.time()) 
 
     with torch.no_grad():
         token_ids = model.generate(
@@ -224,3 +236,25 @@ def get_encoded_messages(req_messages):
     encoded = model.text_to_token_ids(messages, model.tokenizer).to(model.device)
 
     return encoded
+
+
+def get_chunk(id, created, model, delta, stop_reason):
+
+        choices = [
+                    {
+                        "index": 0,
+                        "delta": delta, 
+                        "logprobs": None,
+                        "finish_reason": stop_reason
+                    } 
+                ]
+
+        chunk = V1ChatCompletionsResponse(id=id,
+                                        object="chat.completion.chunk",
+                                        created=created,
+                                        model=model,
+                                        choices=choices
+                                        )
+
+        return chunk.model_dump_json()
+
