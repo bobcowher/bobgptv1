@@ -234,9 +234,13 @@ that approach can't work when text has already been sent.
   number of tokens the model generated (including held/discarded ones, since
   they cost compute), not characters emitted.
 - **Return type.** With `stream: true` you return a `StreamingResponse`,
-  not the Pydantic model, so `response_model=` on the route will fight you.
-  Branch early: `if req.stream: return StreamingResponse(...)`. FastAPI
-  doc: https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse
+  not the Pydantic model. That's fine with `response_model=` on the route:
+  FastAPI passes any returned `Response` through without validating it, so
+  the model still checks the non-streaming branch. The route itself must not
+  contain `yield` (it would become a generator and its JSON `return` would be
+  lost). Branch early: `if req.stream: return StreamingResponse(gen())`, with
+  the yields in a separate (or nested) function. FastAPI doc:
+  https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse
 - **Sync generator is fine.** A plain `def` generator gets iterated in
   FastAPI's threadpool, so a slow model doesn't freeze the server. Don't
   make it `async def` unless the body actually awaits something; a blocking
