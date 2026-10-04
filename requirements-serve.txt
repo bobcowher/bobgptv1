@@ -1,0 +1,10 @@
+# What the API server needs on lab (deploy.sh installs this into $BOBGPT_VENV).
+# Pinned to the versions tested locally; bump them deliberately.
+--extra-index-url https://download.pytorch.org/whl/cu128
+
+torch==2.8.0+cu128
+fastapi[standard]==0.141.1
+uvicorn==0.54.0
+pydantic==2.13.5
+tiktoken==0.12.0
+numpy==2.3.3

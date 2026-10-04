@@ -14,12 +14,12 @@ from text_stream import TextStream
 
 app = FastAPI()
 
-language_model_path = "checkpoints/model.pth"
+language_model_path = "checkpoints/posttrain/model.pth"
 language_model_creation_time = int(os.path.getmtime(language_model_path))
 
 
 model = LanguageModel(gpt_config=GPT_CONFIG_124M)
-model.load_the_model("checkpoints/model.pth")
+model.load_the_model(language_model_path)
 model.model.eval()
 
 context_size = model.model.pos_emb.weight.shape[0]
