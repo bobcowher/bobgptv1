@@ -41,9 +41,9 @@ with torch.no_grad():
     print(f"Val loss before post-training: {model.calc_loss_loader(val_loader):.3f}")
 model.model.train()
 
-# ~3.6M tokens per epoch. The best epoch (full val loss) is what gets saved,
-# so extra epochs only cost time; patience=1 stops at the first that overfits.
-model.train(num_epochs=3,
+# ~3.6M tokens per epoch. Two epochs: on run 25, epoch 3 moved val loss only
+# 2.548 -> 2.543 while train loss kept falling (run 29). The best epoch is saved.
+model.train(num_epochs=2,
             eval_freq=200,
             eval_iter=20,
             start_context="### Question\nWhat is the difference between a list and a tuple in Python?\n\n### Answer\n",
