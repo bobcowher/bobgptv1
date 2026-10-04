@@ -121,10 +121,6 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
                 stop = True 
                 stop_reason = "stop" 
 
-            if total_tokens >= req.max_tokens:
-                stop = True
-                stop_reason = "length"
-
             if stop:
                 break
 
@@ -136,6 +132,9 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
 
             yield f"data: {chunk}\n\n"
 
+        # No stop text: either the token budget ran out or the model emitted EOT.
+        if stop_reason is None:
+            stop_reason = "length" if total_tokens == req.max_tokens else "stop"
 
         chunk = get_chunk(id=id,
                           created=created,
