@@ -1,0 +1,16 @@
+{
+  "description": "First post-training mix: Q&A + chat, loss on assistant replies only. Replay (~10%) of fineweb_edu and python_docs to limit forgetting; replay has no val so val loss is chat/Q&A only. SmolTalk and the templated curricula stay out (style/template leakage).",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "loss_mask": true,
+  "sources": [
+    {"name": "tutor_qa", "repeat": 1},
+    {"name": "chat", "repeat": 1},
+    {"name": "oasst2", "repeat": 1},
+    {"name": "python_qa", "repeat": 1},
+    {"name": "code_qa", "repeat": 1},
+    {"name": "linux_qa", "repeat": 1},
+    {"name": "fineweb_edu", "repeat": 1, "fraction": 0.0001, "val_fraction": 0},
+    {"name": "python_docs", "repeat": 1, "fraction": 0.002, "val_fraction": 0}
+  ]
+}

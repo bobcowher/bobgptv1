@@ -10,12 +10,13 @@ from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT
 
 
 # A mix in mixes/, built into data/build/ by scripts/build_mix.py
-train_loader, val_loader = make_loaders("pretrain_v9", GPT_CONFIG_124M, batch_size=8)
+train_loader, val_loader = make_loaders("pretrain_v10", GPT_CONFIG_124M, batch_size=8)
 
 
-# Two passes. The LR schedule decays to its floor at the end of
-# the last epoch, so num_epochs is the training budget, not a cap.
-num_epochs = 2
+# One pass over ~1.3B tokens (~12h at 30k tok/s): fresh data beats repeats.
+# The LR schedule decays to its floor at the end of the last epoch, so
+# num_epochs is the training budget, not a cap.
+num_epochs = 1
 
 # Saved under data/ (the shared dataset dir on lab) so posttrain.py, which runs
 # as a separate Beekeeper project, can load it.
@@ -28,4 +29,5 @@ model.train(num_epochs=num_epochs,
             eval_freq=1000,
             eval_iter=20,
             start_context="Every effort moves you",
-            patience=2)
+            patience=2,
+            save_each_eval=True)

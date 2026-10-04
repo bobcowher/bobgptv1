@@ -1,0 +1,17 @@
+{
+  "description": "First pretrain-only mix (Q&A and chat move to post-training). ~1.3B tokens for one epoch in ~12h at 30k tok/s: ~70% FineWeb-Edu, ~25% permissive GitHub code (Python/C++/Rust/Shell), ~5% docs and books.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "fineweb_edu", "fraction": 0.38, "val_fraction": 0.01},
+    {"name": "github_python", "fraction": 0.6, "val_fraction": 0.01},
+    {"name": "github_cpp", "fraction": 0.5, "val_fraction": 0.01},
+    {"name": "github_rust", "val_fraction": 0.01},
+    {"name": "github_shell", "fraction": 0.6, "val_fraction": 0.01},
+    {"name": "python_docs"},
+    {"name": "python_books"},
+    {"name": "code_docs"},
+    {"name": "linux_manpages"},
+    {"name": "books"}
+  ]
+}

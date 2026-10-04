@@ -22,7 +22,8 @@ POSTTRAIN_CHECKPOINT = "data/checkpoints/posttrain/model.pth"
 
 class LanguageModel:
 
-    def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth"):
+    def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth",
+                 lr=0.0006):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # TF32 for any matmul still in fp32 (outside autocast): ~free speed on Ampere+.
@@ -31,7 +32,7 @@ class LanguageModel:
         self.model.to(self.device)  # before the optimizer: fused AdamW needs params on the GPU
         self.optimizer = torch.optim.AdamW(
                          self.model.parameters(),
-                         lr=0.0006, weight_decay=0.1,
+                         lr=lr, weight_decay=0.1,
                          fused=self.device.type == "cuda"
                         )
         self.train_loader = train_loader
@@ -43,7 +44,7 @@ class LanguageModel:
 
 
     def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
-              warmup_steps=2000, min_lr_ratio=0.1):
+              warmup_steps=2000, min_lr_ratio=0.1, save_each_eval=False):
 
         # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
         # The schedule needs the run length up front: num_epochs is the budget.
@@ -100,6 +101,8 @@ class LanguageModel:
                         sample = self.generate_and_print_sample(start_context)
                         writer.add_text("samples/generated_text", sample, global_step)
                         writer.flush()
+                        if save_each_eval:  # long single-epoch runs: don't lose hours to a crash
+                            self.save_the_model()
                         last_eval_time, last_eval_tokens = time.time(), tokens_seen
 
                 epoch_train_loss = epoch_loss_sum / epoch_batch_count
