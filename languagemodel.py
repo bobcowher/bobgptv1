@@ -150,12 +150,7 @@ class LanguageModel:
         if checkpoint_path == None:
             checkpoint_path = self.checkpoint_path
 
-        try:
-            self.model.load_state_dict(torch.load(checkpoint_path, map_location=self.device))
-            print(f"Successfully loaded weights from {checkpoint_path}")
-        except:
-            print(f"Failed to load weights from {checkpoint_path}")
-
+        self.model.load_state_dict(torch.load(checkpoint_path, map_location=self.device))
 
     def generate_text_simple(self, idx,
                              max_new_tokens, context_size):

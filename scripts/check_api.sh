@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# check_api.sh — curl checks for the OpenAI-compatible server (see SERVING.md).
+# check_api.sh — curl checks for the OpenAI-compatible server (see docs/SERVING.md).
 #
 #   scripts/check_api.sh                     # against http://localhost:8000
 #   BASE=http://lab:8000 scripts/check_api.sh
@@ -45,7 +45,7 @@ check "model has id, object=model, integer created, owned_by" \
 check "model id is \"$MODEL\"" "any(.data[]; .id == \"$MODEL\")" "$body"
 
 echo "== POST /v1/chat/completions (non-streaming)"
-code=$(post "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"What is a Python list?\"}],\"max_tokens\":30}")
+code=$(post "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"What is a Python list?\"}],\"max_tokens\":200}")
 body=$(cat "$tmp"); [ "$code" = 200 ] || body=""
 status_is "HTTP 200" 200 "$code"
 check "envelope: id, object=chat.completion, integer created, model" \
@@ -57,8 +57,11 @@ check "choices[0].logprobs present (null)" '.choices[0] | has("logprobs") and .l
 check "finish_reason is stop or length" '.choices[0].finish_reason | IN("stop", "length")' "$body"
 check "usage: integer token counts, total = prompt + completion" \
   '.usage | (.prompt_tokens | type == "number") and (.completion_tokens | type == "number") and .total_tokens == .prompt_tokens + .completion_tokens' "$body"
-check "completion_tokens <= max_tokens (30)" '.usage.completion_tokens <= 30' "$body"
-echo "      content: $(jq -c '.choices[0].message.content' "$tmp" 2>/dev/null | cut -c1-120)"
+check "completion_tokens <= max_tokens (200)" '.usage.completion_tokens <= 200' "$body"
+check "content trimmed: no ### End / ### Question / ### Answer" '.choices[0].message.content | test("### (End|Question|Answer)") | not' "$body"
+check "content has no leading/trailing whitespace" '.choices[0].message.content | . == (sub("^\\s+"; "") | sub("\\s+$"; ""))' "$body"
+echo "      content end: $(jq -c '.choices[0].message.content[-100:]' "$tmp" 2>/dev/null)"
+echo "      finish_reason: $(jq -r '.choices[0].finish_reason' "$tmp" 2>/dev/null), completion_tokens: $(jq -r '.usage.completion_tokens' "$tmp" 2>/dev/null)"
 
 echo "== Request variants"
 code=$(post "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Hi\"}],\"max_completion_tokens\":5}")

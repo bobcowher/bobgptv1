@@ -54,7 +54,17 @@ class V1ChatCompletionsResponse(BaseModel):
 @app.post("/v1/chat/completions", response_model=V1ChatCompletionsResponse, status_code=200)
 def get_chat_completion(req: V1ChatCompletionsRequest):
 
-    messages = render_prompt(req.messages) 
+    stop_reason = "length"
+
+    # content is a string, or a list of parts like {"type": "text", "text": "..."}; keep only the text.
+    normalized = []
+    for message in req.messages:
+        content = message["content"]
+        if not isinstance(content, str):
+            content = "".join(part["text"] for part in content if part.get("type") == "text")
+        normalized.append({"role": message["role"], "content": content})
+
+    messages = render_prompt(normalized)
 
     encoded = model.text_to_token_ids(messages, model.tokenizer).to(model.device)
     with torch.no_grad():
@@ -67,11 +77,31 @@ def get_chat_completion(req: V1ChatCompletionsRequest):
                 eos_id=eot
                 )
 
+
     completion_tokens = token_ids[:, encoded.shape[1]:]
 
-    print(completion_tokens.shape)
-    
     completion = model.token_ids_to_text(completion_tokens, model.tokenizer)
+
+    # Strip out End
+    end_text_idx = completion.find("### End")
+
+    if(end_text_idx != -1):
+        completion = completion[:end_text_idx]
+        stop_reason = "stop"
+    
+    # If no end is found, strip out question.
+    question_text_idx = completion.find("\n### Question")
+
+    if(question_text_idx != -1):
+        completion = completion[:question_text_idx]
+        stop_reason = "stop"
+
+    # Remove whitespace
+    completion = completion.strip()
+
+    if completion_tokens.shape[1] < req.max_tokens:
+        stop_reason = "stop"
+
 
     usage = {
             "prompt_tokens": encoded.shape[1],
@@ -88,7 +118,7 @@ def get_chat_completion(req: V1ChatCompletionsRequest):
                         "refusal": None
                         },
                     "logprobs": None,
-                    "finish_reason": "stop"
+                    "finish_reason": stop_reason
                 } 
             ]
 
