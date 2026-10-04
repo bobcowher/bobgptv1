@@ -84,19 +84,37 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
 
     text_stream = TextStream(model.tokenizer)
 
-    with torch.no_grad():
-        for token_id in model.generate_streaming(
-                            idx = encoded,
-                            max_new_tokens=req.max_tokens,
-                            context_size=context_size,
-                            temperature=req.temperature,
-                            top_k=40,
-                            eos_id=eot):
-            total_tokens += 1
+    # finally also runs when the client disconnects mid-stream (Stop in Open WebUI):
+    # the generator is closed at its paused yield and the code after the loop never runs.
+    try:
+        with torch.no_grad():
+            for token_id in model.generate_streaming(
+                                idx = encoded,
+                                max_new_tokens=req.max_tokens,
+                                context_size=context_size,
+                                temperature=req.temperature,
+                                top_k=40,
+                                eos_id=eot):
+                total_tokens += 1
 
-            # Text that's safe to send: stop markers and trailing whitespace are held back.
-            completion = text_stream.push(token_id.item())
+                # Text that's safe to send: stop markers and trailing whitespace are held back.
+                completion = text_stream.push(token_id.item())
 
+                if completion:
+                    chunk = get_chunk(id=id,
+                                      created=created,
+                                      model=req.model,
+                                      delta={"content": completion},
+                                      stop_reason=None)
+
+                    yield f"data: {chunk}\n\n"
+
+                if text_stream.stopped:
+                    stop_reason = "stop"
+                    break
+
+            # Generation ended without a stop marker: send what was held back.
+            completion = text_stream.finish()
             if completion:
                 chunk = get_chunk(id=id,
                                   created=created,
@@ -106,34 +124,22 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
 
                 yield f"data: {chunk}\n\n"
 
-            if text_stream.stopped:
-                stop_reason = "stop"
-                break
+            # No stop text: either the token budget ran out or the model emitted EOT.
+            if stop_reason is None:
+                stop_reason = "length" if total_tokens == req.max_tokens else "stop"
 
-        # Generation ended without a stop marker: send what was held back.
-        completion = text_stream.finish()
-        if completion:
             chunk = get_chunk(id=id,
                               created=created,
                               model=req.model,
-                              delta={"content": completion},
-                              stop_reason=None)
+                              delta={},
+                              stop_reason=stop_reason)
 
             yield f"data: {chunk}\n\n"
-
-        # No stop text: either the token budget ran out or the model emitted EOT.
-        if stop_reason is None:
-            stop_reason = "length" if total_tokens == req.max_tokens else "stop"
-
-        chunk = get_chunk(id=id,
-                          created=created,
-                          model=req.model,
-                          delta={},
-                          stop_reason=stop_reason)
-
-        yield f"data: {chunk}\n\n"
         
-        yield "data: [DONE]\n\n"
+            yield "data: [DONE]\n\n"
+    finally:
+        # Hand cached GPU memory back so idle bobgpt doesn't crowd gemma on the 3060.
+        torch.cuda.empty_cache()
             
 
 
@@ -153,7 +159,7 @@ def get_chat_completion_block(req: V1ChatCompletionsRequest):
                 top_k=40,
                 eos_id=eot
                 )
-
+    torch.cuda.empty_cache()  # see get_chat_completion_streaming
 
     completion_tokens = token_ids[:, encoded.shape[1]:]
 
