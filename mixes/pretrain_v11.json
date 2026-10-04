@@ -1,0 +1,17 @@
+{
+  "description": "v10 with every source at full size, for the 406M run (~2 days on the power-limited 3090). Same sources and val split as v10; FineWeb-Edu and GitHub no longer subsampled.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "fineweb_edu", "val_fraction": 0.01},
+    {"name": "github_python", "val_fraction": 0.01},
+    {"name": "github_cpp", "val_fraction": 0.01},
+    {"name": "github_rust", "val_fraction": 0.01},
+    {"name": "github_shell", "val_fraction": 0.01},
+    {"name": "python_docs"},
+    {"name": "python_books"},
+    {"name": "code_docs"},
+    {"name": "linux_manpages"},
+    {"name": "books"}
+  ]
+}
