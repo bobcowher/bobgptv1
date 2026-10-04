@@ -9,6 +9,7 @@ from chat_template import *
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from fastapi.responses import StreamingResponse
 from config import GPT_CONFIG_124M
+from text_stream import TextStream
 
 
 app = FastAPI()
@@ -24,29 +25,6 @@ model.model.eval()
 context_size = model.model.pos_emb.weight.shape[0]
 eot = model.tokenizer.eot_token
 
-### Just here for the POC
-
-# encoded = model.text_to_token_ids(messages, model.tokenizer).to(model.device)
-#
-# with torch.no_grad():
-#     for token_id in model.generate_streaming(
-#                         idx = encoded,
-#                         max_new_tokens=50,
-#                         context_size=context_size,
-#                         temperature=0,
-#                         top_k=40,
-#                         eos_id=eot):
-#
-#         completion = model.token_ids_to_text(token_id, model.tokenizer)
-#         print(completion)
-
-
-### Just here for the POC
-
-# V1 Models Response
-# Target: {"object": "list", "data": [{"id": "bobgpt", "object": "model", "owned_by": "you"}]}
-
-# sys.exit(1)
 
 class V1Models(BaseModel):
     object: str
@@ -66,6 +44,7 @@ class V1ChatCompletionsRequest(BaseModel):
     stream: bool = False
     temperature: float = 1.0
     max_tokens: int = 100
+    max_completion_tokens: int | None = None   # newer name for max_tokens; wins when both are sent
 
 class V1ChatCompletionsResponse(BaseModel):
     id: str
@@ -78,6 +57,9 @@ class V1ChatCompletionsResponse(BaseModel):
 
 @app.post("/v1/chat/completions", response_model=V1ChatCompletionsResponse, status_code=200)
 def get_chat_completion(req: V1ChatCompletionsRequest):
+    if req.max_completion_tokens is not None:
+        req.max_tokens = req.max_completion_tokens
+
     if req.stream:
         return StreamingResponse(get_chat_completion_streaming(req), media_type="text/event-stream")
     else:
@@ -85,7 +67,6 @@ def get_chat_completion(req: V1ChatCompletionsRequest):
 
 
 def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
-    stop = False
     total_tokens = 0
     stop_reason = None
     id = f"chatcmpl-{uuid.uuid4().hex}"
@@ -101,6 +82,8 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
 
     yield f"data: {chunk}\n\n"
 
+    text_stream = TextStream(model.tokenizer)
+
     with torch.no_grad():
         for token_id in model.generate_streaming(
                             idx = encoded,
@@ -111,19 +94,25 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
                             eos_id=eot):
             total_tokens += 1
 
-            completion = model.token_ids_to_text(token_id, model.tokenizer)
-    
-            # See if we have a text stop. 
-            end_text_idx = completion.find("### End")
-            question_text_idx = completion.find("\n### Question")
+            # Text that's safe to send: stop markers and trailing whitespace are held back.
+            completion = text_stream.push(token_id.item())
 
-            if((end_text_idx != -1) or (question_text_idx != -1)):
-                stop = True 
-                stop_reason = "stop" 
+            if completion:
+                chunk = get_chunk(id=id,
+                                  created=created,
+                                  model=req.model,
+                                  delta={"content": completion},
+                                  stop_reason=None)
 
-            if stop:
+                yield f"data: {chunk}\n\n"
+
+            if text_stream.stopped:
+                stop_reason = "stop"
                 break
 
+        # Generation ended without a stop marker: send what was held back.
+        completion = text_stream.finish()
+        if completion:
             chunk = get_chunk(id=id,
                               created=created,
                               model=req.model,
@@ -151,10 +140,9 @@ def get_chat_completion_streaming(req: V1ChatCompletionsRequest):
 def get_chat_completion_block(req: V1ChatCompletionsRequest):
 
     stop_reason = "length"
-
     encoded = get_encoded_messages(req.messages)
-
     created = int(time.time()) 
+    id = f"chatcmpl-{uuid.uuid4().hex}"
 
     with torch.no_grad():
         token_ids = model.generate(
@@ -211,9 +199,9 @@ def get_chat_completion_block(req: V1ChatCompletionsRequest):
                 } 
             ]
 
-    response = V1ChatCompletionsResponse(id="5",
+    response = V1ChatCompletionsResponse(id=id,
                                          object="chat.completion",
-                                         created=int(time.time()),
+                                         created=created,
                                          model=req.model,
                                          choices=choices,
                                          usage=usage
