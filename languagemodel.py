@@ -1,7 +1,6 @@
 import torch
 import tiktoken
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
 from models import GPTModel
 import math
 import os
@@ -62,6 +61,8 @@ class LanguageModel:
         tokens_seen, global_step = 0, -1
         last_eval_time, last_eval_tokens = time.time(), 0
         best_val_loss, epochs_without_improvement = float("inf"), 0
+        # Imported here so serving (which never trains) doesn't need tensorboard.
+        from torch.utils.tensorboard import SummaryWriter
         writer = SummaryWriter(log_dir="runs")
 
         try:

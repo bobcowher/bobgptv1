@@ -29,6 +29,8 @@ git checkout "$BRANCH_NAME"
 git reset --hard "origin/$BRANCH_NAME"
 [ -x "$BOBGPT_VENV/bin/python" ] || "$BOBGPT_PYTHON" -m venv "$BOBGPT_VENV"
 "$BOBGPT_VENV/bin/pip" install -q -r requirements-serve.txt
+# ln -sfn into an existing real directory would put the link inside it.
+[ -L checkpoints ] || [ ! -e checkpoints ] || { echo "checkpoints/ exists and is not a symlink" >&2; exit 1; }
 ln -sfn "$BOBGPT_CHECKPOINT_ROOT" checkpoints
 sudo systemctl restart bobgpt
 EOF
