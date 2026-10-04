@@ -16,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-MAX_TOKENS = {"chat": "400", "tutor_qa": "230"}
+MAX_TOKENS = {"chat": "400", "tutor_qa": "400"}  # tutor_qa round 3+ (1024 context) allows 400
 
 
 def main() -> None:
