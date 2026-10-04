@@ -22,13 +22,19 @@ POSTTRAIN_CHECKPOINT = "data/checkpoints/posttrain/model.pth"
 class LanguageModel:
 
     def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth",
-                 lr=0.0006):
+                 lr=0.0006, compile=False):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # TF32 for any matmul still in fp32 (outside autocast): ~free speed on Ampere+.
         torch.set_float32_matmul_precision("high")
         self.model = GPTModel(cfg=gpt_config)
         self.model.to(self.device)  # before the optimizer: fused AdamW needs params on the GPU
+        # The loss path (training and eval) runs through train_model. torch.compile costs
+        # a minute or two up front, so it's only worth it on long runs. The compiled
+        # wrapper shares self.model's parameters; saving and generation keep using
+        # self.model, so checkpoints have no _orig_mod. prefix and generation's
+        # growing sequence lengths don't trigger recompiles.
+        self.train_model = torch.compile(self.model) if compile else self.model
         self.optimizer = torch.optim.AdamW(
                          self.model.parameters(),
                          lr=lr, weight_decay=0.1,
@@ -78,9 +84,11 @@ class LanguageModel:
                     scheduler.step()
                     tokens_seen += input_batch.numel()
                     global_step += 1
-                    epoch_loss_sum += loss.item()
+                    # .item() waits for the GPU to finish, so call it once per step.
+                    batch_loss = loss.item()
+                    epoch_loss_sum += batch_loss
                     epoch_batch_count += 1
-                    writer.add_scalar("loss/train_batch", loss.item(), global_step)
+                    writer.add_scalar("loss/train_batch", batch_loss, global_step)
 
                     if global_step % eval_freq == 0:
                         train_loss, val_loss = self.evaluate_model(eval_iter)
@@ -228,7 +236,7 @@ class LanguageModel:
         # (unlike fp16). Loss is computed in fp32.
         with torch.autocast(device_type=self.device.type, dtype=torch.bfloat16,
                             enabled=self.device.type == "cuda"):
-            logits = self.model(input_batch)
+            logits = self.train_model(input_batch)
         loss = torch.nn.functional.cross_entropy(
                 logits.float().flatten(0, 1), target_batch.flatten()
                 )

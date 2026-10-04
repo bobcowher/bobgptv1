@@ -33,6 +33,9 @@ class GPTModel(nn.Module):
 
 
 class LayerNorm(nn.Module):
+    # Same math as the hand-written version (mean/var over the last dim), as one fused
+    # kernel. Kept as a class, not nn.LayerNorm, so the scale/shift names in existing
+    # checkpoints still load.
     def __init__(self, emb_dim):
         super().__init__()
         self.eps = 1e-5
@@ -40,22 +43,7 @@ class LayerNorm(nn.Module):
         self.shift = nn.Parameter(torch.zeros(emb_dim))
 
     def forward(self, x):
-        mean = x.mean(dim=-1, keepdim=True)
-        var = x.var(dim=-1, keepdim=True, unbiased=False)
-        norm_x = (x - mean) / torch.sqrt(var + self.eps)
-        return self.scale * norm_x + self.shift
-
-
-class GELU(nn.Module):
-    def __init__(self):
-
-        super().__init__()
-
-    def forward(self, x):
-        return 0.5 * x * (1 + torch.tanh(
-            torch.sqrt(torch.tensor(2.0 / torch.pi)) *
-            (x + 0.044715 * torch.pow(x, 3))
-            ))
+        return nn.functional.layer_norm(x, x.shape[-1:], self.scale, self.shift, self.eps)
 
 
 class FeedForward(nn.Module):
@@ -63,7 +51,7 @@ class FeedForward(nn.Module):
         super().__init__()
         self.layers = nn.Sequential(
                 nn.Linear(cfg["emb_dim"], 4 * cfg["emb_dim"]),
-                GELU(),
+                nn.GELU(approximate="tanh"),  # GPT-2's tanh approximation
                 nn.Linear(4 * cfg["emb_dim"], cfg["emb_dim"])
                 )
 
