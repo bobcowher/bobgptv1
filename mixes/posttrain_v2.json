@@ -1,0 +1,44 @@
+{
+  "description": "posttrain_v1's sources with tutor_qa round 3 installed (+64 batches, 3.2K records, ~20% multi-turn follow-ups, answers up to 400 tokens). v1 stays as built: its val is the baseline in docs/EVAL.md.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "loss_mask": true,
+  "sources": [
+    {
+      "name": "tutor_qa",
+      "repeat": 1
+    },
+    {
+      "name": "chat",
+      "repeat": 1
+    },
+    {
+      "name": "oasst2",
+      "repeat": 1
+    },
+    {
+      "name": "python_qa",
+      "repeat": 1
+    },
+    {
+      "name": "code_qa",
+      "repeat": 1
+    },
+    {
+      "name": "linux_qa",
+      "repeat": 1
+    },
+    {
+      "name": "fineweb_edu",
+      "repeat": 1,
+      "fraction": 0.0001,
+      "val_fraction": 0
+    },
+    {
+      "name": "python_docs",
+      "repeat": 1,
+      "fraction": 0.002,
+      "val_fraction": 0
+    }
+  ]
+}
