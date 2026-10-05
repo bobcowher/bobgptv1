@@ -7,7 +7,7 @@ import torch
 # Make the project root importable when run as scripts/<name>.py
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import GPT_CONFIG_124M
+from config import GPT_CONFIG_406M
 from dataset import make_loaders
 from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT, POSTTRAIN_CHECKPOINT
 
@@ -21,13 +21,18 @@ init_checkpoint = os.environ.get("INIT_CHECKPOINT", PRETRAIN_CHECKPOINT)
 if not os.path.exists(init_checkpoint):
     sys.exit(f"No pretrained checkpoint at {init_checkpoint}; run scripts/pretrain.py first.")
 
+# Must match the pretrained checkpoint's architecture (pretrain.py's config).
+# An INIT_CHECKPOINT from a 124M run (<= 30) needs GPT_CONFIG_124M here.
+cfg = GPT_CONFIG_406M
+
 # Q&A + chat with loss on assistant replies only (see mixes/posttrain_v1.json).
-# Batch 4: batch 8 at 1024 context doesn't fit the 3060's 12GB.
-train_loader, val_loader = make_loaders("posttrain_v1", GPT_CONFIG_124M, batch_size=4)
+# Batch 4 (406M peaks ~12GB): more steps on a small dataset. That's too much for
+# the 3060 next to the API, so the Beekeeper project's 20GB minimum puts it on the 3090.
+train_loader, val_loader = make_loaders("posttrain_v1", cfg, batch_size=4)
 
 # Fresh optimizer, LR well below pretraining's 6e-4 peak: adapt the format
 # without overwriting what pretraining learned.
-model = LanguageModel(gpt_config=GPT_CONFIG_124M,
+model = LanguageModel(gpt_config=cfg,
                       train_loader=train_loader,
                       val_loader=val_loader,
                       checkpoint_path=POSTTRAIN_CHECKPOINT,
