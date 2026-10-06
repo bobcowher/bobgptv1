@@ -8,7 +8,7 @@ from languagemodel import *
 from chat_template import *
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from fastapi.responses import StreamingResponse
-from config import GPT_CONFIG_124M
+from config import GPT_CONFIG_406M
 from text_stream import TextStream
 
 
@@ -18,7 +18,7 @@ language_model_path = "checkpoints/posttrain/model.pth"
 language_model_creation_time = int(os.path.getmtime(language_model_path))
 
 
-model = LanguageModel(gpt_config=GPT_CONFIG_124M)
+model = LanguageModel(gpt_config=GPT_CONFIG_406M)
 model.load_the_model(language_model_path)
 model.model.eval()
 

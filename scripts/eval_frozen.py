@@ -69,9 +69,15 @@ def main():
     data = {source: val_tokens(source, enc) for source in SOURCES}
     print("  ".join(f"{s}: {len(t):,} tokens" for s, t in data.items()))
     for checkpoint in sys.argv[1:]:
-        # Build each model at the context length it was trained with (pos_emb rows).
+        # Build each model at the size it was trained with: context length from
+        # pos_emb rows, width and depth from the weights. Every config uses 64-dim heads.
         state = torch.load(checkpoint, map_location="cpu")
-        cfg = dict(GPT_CONFIG_124M, context_length=state["pos_emb.weight"].shape[0])
+        emb_dim = state["tok_emb.weight"].shape[1]
+        cfg = dict(GPT_CONFIG_124M,
+                   context_length=state["pos_emb.weight"].shape[0],
+                   emb_dim=emb_dim,
+                   n_heads=emb_dim // 64,
+                   n_layers=len({k.split(".")[1] for k in state if k.startswith("trf_blocks.")}))
         model = LanguageModel(gpt_config=cfg)
         model.load_the_model(checkpoint)
         model.model.eval()
