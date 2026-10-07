@@ -15,10 +15,11 @@ from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT, POSTTRAIN_CHECKPOI
 # Post-training starts from pretrained weights: pretrain.py's output by default,
 # or any checkpoint named by INIT_CHECKPOINT (e.g. an older run's model).
 init_checkpoint = os.environ.get("INIT_CHECKPOINT", PRETRAIN_CHECKPOINT)
-# Experiments set these on the Beekeeper project so they don't overwrite the
-# checkpoint bobgpt serves (POSTTRAIN_CHECKPOINT) or change the default mix.
-mix = os.environ.get("POSTTRAIN_MIX", "posttrain_v2")
-output_checkpoint = os.environ.get("POSTTRAIN_OUT", POSTTRAIN_CHECKPOINT)
+# The result always replaces the checkpoint bobgpt serves (POSTTRAIN_CHECKPOINT);
+# keep older runs by copying them to checkpoints/runNN/ first. POSTTRAIN_MIX
+# picks another mix without a code change.
+mix = os.environ.get("POSTTRAIN_MIX", "posttrain_v4")
+output_checkpoint = POSTTRAIN_CHECKPOINT
 
 # Fail loudly if the weights are missing or don't fit: fine-tuning a random
 # model would look like a run.
