@@ -5,12 +5,13 @@ Score: Bradley-Terry, run30 = 1000, 100 points ≈ 64% win rate. Overlapping 95%
 
 | run | score | 95% CI | matches | split | stopped | leak | echo | repeat | greeting | multi_turn | correction | coding | explanation | limits | format | feelings |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| run33 | 1186 | 1132–1245 | 360 | 26% | 98% | 0% | 1% | 10% | 84% | 57% | 79% | 78% | 77% | 76% | 86% | 83% |
-| run32 | 1107 | 1067–1153 | 360 | 28% | 93% | 0% | 0% | 12% | 63% | 75% | 51% | 69% | 61% | 78% | 53% | 63% |
-| run30 | 1000 | 1000–1000 | 360 | 28% | 92% | 0% | 1% | 12% | 48% | 54% | 54% | 45% | 42% | 46% | 53% | 46% |
-| run31 | 706 | 638–766 | 360 | 12% | 4% | 39% | 0% | 77% | 5% | 14% | 15% | 8% | 20% | 0% | 8% | 7% |
+| run34 | 1242 | 1178–1313 | 360 | 30% | 99% | 0% | 1% | 3% | 75% | 54% | 83% | 56% | 71% | 81% | 78% | 81% |
+| run33 | 1179 | 1128–1237 | 480 | 29% | 98% | 0% | 1% | 10% | 73% | 54% | 65% | 71% | 68% | 65% | 76% | 71% |
+| run32 | 1099 | 1060–1145 | 480 | 29% | 93% | 0% | 0% | 12% | 51% | 69% | 42% | 64% | 52% | 66% | 42% | 50% |
+| run30 | 1000 | 1000–1000 | 480 | 27% | 92% | 0% | 1% | 12% | 41% | 51% | 45% | 42% | 37% | 34% | 43% | 38% |
+| run31 | 703 | 634–761 | 360 | 12% | 4% | 39% | 0% | 77% | 5% | 14% | 15% | 8% | 20% | 0% | 8% | 7% |
 
 Judge agreement (Opus and Robert judge samples, blind; see docs/EVAL.md):
 - Opus vs Robert: of 9 pairs where Robert picked a winner, Opus tied 0; on the other 9 it agreed 6 (67%).
-- gemma vs Opus: of 84 pairs where Opus picked a winner, gemma tied 17; on the other 67 it agreed 63 (94%).
+- gemma vs Opus: of 100 pairs where Opus picked a winner, gemma tied 26; on the other 74 it agreed 70 (95%).
 - gemma vs Robert: of 9 pairs where Robert picked a winner, gemma tied 3; on the other 6 it agreed 5 (83%).

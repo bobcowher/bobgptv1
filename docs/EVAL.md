@@ -315,9 +315,12 @@ Frozen benchmark at 256 windows unless marked. "Epoch val" is the mix's own val
 | 30 | run 28 + posttrain_v1 | 2 | | 4.049 (3.889 @1024) | 2.005 (1.773 @1024) | **2.396** |
 | 31 | v11, **406M**, pretrain only (3.0B tok) | 1 | 2.521 | **3.649 (3.478 @1024)** | **1.774 (1.548 @1024)** | 2.560 on v2 (untuned) |
 | 32 | run 31 + posttrain_v2 | 2 | | | | 2.061 on v2 (not comparable to v1) |
+| 33 | run 31 + posttrain_v3 (chat ×3) | 2 | | | | 2.060 on v2 val |
+| 34 | run 31 + posttrain_v4 (v3 + multi-turn chat round 3) | 2 | | | | 2.099 on v4 val (adds new chat) |
 
-Ranking (section 5, prompts_v1, judge v2): run 32 1121 [1076–1172], run 30
-1000, run 31 (no post-training) 706 [627–772]. Gemma agreed with Opus on 93%
-of decisive pairs.
+Ranking (section 5, prompts_v1, judge v2): run 34 1242 [1178–1313], run 33
+1179 [1128–1237], run 32 1099 [1060–1145], run 30 1000, run 31 (no
+post-training) 703 [634–761]. Run 34 beat run 33 45–21 (54 ties); Opus 10–6
+on a 20-pair sample. Gemma agreed with Opus on 95% of decisive pairs.
 
 Runs 26 and 27 were a speed benchmark and a crash.
