@@ -4,6 +4,8 @@ data
 checkpoints
 gpt2
 runs
+# ...but not the ranking eval's generated replies (docs/EVAL.md, section 5).
+!/evals/runs/
 scripts/tutor_qa/.compile_cache/
 .claude
 .agents

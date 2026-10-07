@@ -4,7 +4,7 @@ How we decide whether a training run made bobgpt better, which numbers can be
 compared with which, and the commands that produce them. Results so far are in
 the table at the end.
 
-There are four instruments. Each answers a different question, and each has a
+There are five instruments. Each answers a different question, and each has a
 blind spot, so a run is judged on all of them together:
 
 | # | Instrument | Question it answers | Comparable across |
@@ -13,6 +13,7 @@ blind spot, so a run is judged on all of them together:
 | 2 | `scripts/eval_frozen.py` | Did pretraining get better at text and Python docs? | Every run since 20 |
 | 3 | Post-training masked val | Did post-training get better at answering? | Runs on the same post-train mix |
 | 4 | `scripts/test.py` samples | What does it actually say? | Anything, by eye |
+| 5 | Ranking (`eval_generate` / `eval_judge` / `eval_rank`) | Which post-trained model is better to talk to? | Every run on the same prompt set |
 
 ## 1. Training log val loss
 
@@ -185,6 +186,84 @@ What to look for, roughly in the order the model gets them right:
 One sample per prompt is noisy; don't call a winner from one answer. For a
 closer look, chat with it through the API in Open WebUI (`docs/SERVING.md`).
 
+## 5. Ranking: `scripts/eval_generate.py`, `eval_judge.py`, `eval_rank.py`
+
+The answer to "does it feel better in Open WebUI?" for post-trained models.
+Masked val loss (section 3) can fall while chat gets worse: run 32's val
+dropped 2.560 to 2.061, and it still answered "Hey Bobgpt." with "That sounds
+like a small plan." The ranking compares what runs actually say.
+
+**The prompt set** is `evals/prompts_v1.jsonl`: 40 conversations across
+greetings, multi-turn follow-ups, corrections, coding, explanations, limits,
+format instructions and feelings. Multi-turn prompts carry a fixed, written
+history, so every run is judged on the same final turn. Each has a `good`
+note telling the judge what a good reply does. None of the judged messages
+appear verbatim in the post-training sources (checked when the set was
+written). **Never edit it**: a changed set is `prompts_v2`, and scores only
+compare within one version.
+
+**Generate** each checkpoint's replies once (~40s on the 5090):
+
+```bash
+python scripts/eval_generate.py run32 checkpoints/run32_model.pth
+```
+
+It writes `evals/runs/run32.jsonl`: 3 seeded samples per prompt, made the way
+api.py serves them (same rendering, top_k 40, stop handling) at temperature
+0.7. Sample k of every run uses the same seed. It also records four automatic
+checks per reply:
+
+| Check | Means |
+|---|---|
+| `stopped` | ended with `### End` or EOT, not the 300-token limit |
+| `leak` | started a new `### Question` turn or wrote a role header |
+| `echo` | half its 4-grams copy the user's last message |
+| `repeat` | some 4-gram appears 3+ times |
+
+**Judge** a run against others with gemma-4-12b on lab:
+
+```bash
+ssh -f -N -L 18080:localhost:8080 lab
+python scripts/eval_judge.py run32 run30 run31
+```
+
+Sample k is matched with sample k, and each pair is judged twice with the
+replies swapped. A win only counts when both orders agree; otherwise it's a
+tie. Small judges favour whichever reply comes first, and this cancels it.
+Verdicts append to `evals/verdicts.jsonl` (with gemma's reasons), and
+already-judged pairs are skipped, so it can be stopped and restarted.
+
+Gemma's hidden thinking is turned off. With it, a call took ~24s and ~700
+tokens and sometimes ran out before the verdict. Without it, ~4s and ~130
+tokens, with the reasoning visible in the reply. With 4 calls in flight, one
+opponent (240 calls) takes a few minutes.
+
+**Rank:**
+
+```bash
+python scripts/eval_rank.py
+```
+
+Fits Bradley-Terry (the model behind Elo, but order-independent) to every
+verdict, run30 = 1000 points; 100 points is about a 64% win rate. The 95%
+interval comes from resampling prompts, because prompts, not single verdicts,
+are the independent unit. **Overlapping intervals mean tied.** Also shown:
+`split`, the share of pairs where the two orders disagreed (high means the
+judge couldn't tell), the check rates, and each run's share of points won per
+category. Written to `evals/RANKING.md`.
+
+**Check the judge against you:**
+
+```bash
+python scripts/eval_rate.py 20
+```
+
+Shows 20 random judged pairs blind and in random order; press a, b or t.
+`eval_rank.py` then reports how often gemma agreed with you. Below ~70%, fix
+the judge prompt (bump `JUDGE_VERSION`) before trusting the ranking.
+
+**New run:** generate it, judge it against run30 and the current top 3, rank.
+
 ## After a run: the checklist
 
 After a **pretraining** run:
@@ -202,11 +281,11 @@ After a **pretraining** run:
 5. Post-train it (`INIT_CHECKPOINT=data/checkpoints/run<N>/model.pth` on the
    `bobgpt-v1-posttrain` Beekeeper project) and compare masked val with the
    table above.
-6. `test.py` on the post-trained model.
+6. `test.py` on the post-trained model, then rank it (section 5).
 7. Add a row to the results table.
 
 After a **post-training** run: steps 2–3 for `data/checkpoints/posttrain/`,
-then 6, then section 2 to see how much it forgot.
+then 6 (including the ranking), then section 2 to see how much it forgot.
 
 ## Results
 
@@ -224,5 +303,10 @@ Frozen benchmark at 256 windows unless marked. "Epoch val" is the mix's own val
 | 28 | v10 pretrain only (1.3B tok, web + code) | 1 | 2.428 | 3.902 (3.751 @1024) | 1.902 (1.687 @1024) | 2.813 (untuned) |
 | 29 | run 25 + posttrain_v1 | 3 | | 4.060 (3.921 @1024) | 1.985 (1.780 @1024) | 2.543 |
 | 30 | run 28 + posttrain_v1 | 2 | | 4.049 (3.889 @1024) | 2.005 (1.773 @1024) | **2.396** |
+| 31 | v11, **406M**, pretrain only (3.0B tok) | 1 | 2.521 | **3.649 (3.478 @1024)** | **1.774 (1.548 @1024)** | 2.560 on v2 (untuned) |
+| 32 | run 31 + posttrain_v2 | 2 | | | | 2.061 on v2 (not comparable to v1) |
+
+Ranking (section 5, prompts_v1): run 32 1089 [1056–1127], run 30 1000, run 31
+(no post-training) 847 [805–886].
 
 Runs 26 and 27 were a speed benchmark and a crash.
