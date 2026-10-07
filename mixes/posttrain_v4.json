@@ -1,0 +1,44 @@
+{
+  "description": "posttrain_v3 plus chat round 3 (40 multi-turn-heavy Codex batches, chat 3495 -> 5468 records), chat still 3x. Run 33 lost multi-turn share (75% -> 57%).",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "loss_mask": true,
+  "sources": [
+    {
+      "name": "tutor_qa",
+      "repeat": 1
+    },
+    {
+      "name": "chat",
+      "repeat": 3
+    },
+    {
+      "name": "oasst2",
+      "repeat": 1
+    },
+    {
+      "name": "python_qa",
+      "repeat": 1
+    },
+    {
+      "name": "code_qa",
+      "repeat": 1
+    },
+    {
+      "name": "linux_qa",
+      "repeat": 1
+    },
+    {
+      "name": "fineweb_edu",
+      "repeat": 1,
+      "fraction": 0.0001,
+      "val_fraction": 0
+    },
+    {
+      "name": "python_docs",
+      "repeat": 1,
+      "fraction": 0.002,
+      "val_fraction": 0
+    }
+  ]
+}
