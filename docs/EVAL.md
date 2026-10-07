@@ -252,15 +252,25 @@ are the independent unit. **Overlapping intervals mean tied.** Also shown:
 judge couldn't tell), the check rates, and each run's share of points won per
 category. Written to `evals/RANKING.md`.
 
-**Check the judge against you:**
+**Check the judge.** Gemma is cheap but small, so it's checked against two
+reference raters on a sample of pairs:
 
 ```bash
-python scripts/eval_rate.py 20
+python scripts/eval_judge.py --judge opus --sample 20 run32 run30 run31   # Opus, headless claude -p
+python scripts/eval_rate.py 20                                            # you, blind A/B in the terminal
 ```
 
-Shows 20 random judged pairs blind and in random order; press a, b or t.
-`eval_rank.py` then reports how often gemma agreed with you. Below ~70%, fix
-the judge prompt (bump `JUDGE_VERSION`) before trusting the ranking.
+Opus judges a seeded random sample with the same prompt and order swap, plus
+every pair you rated by hand, so Opus can be checked against you and then
+stand in for you at scale (~$0.01 a call on the plan with a minimal system
+prompt; with Claude Code's default one it's ~20x more). `eval_rank.py`
+reports agreement three ways: Opus vs you, gemma vs Opus, gemma vs you. Each
+line also says how often the judge called a tie where the reference picked a
+winner: judge v1 ("TIE when both are equally bad") tied 6 of your first 9
+picks, because at this size both replies are usually bad; v2 tells it to pick
+the reply closer to a good answer. If gemma's agreement with Opus is low, fix
+the judge prompt and bump `JUDGE_VERSION`; old verdicts stay in the file and
+are filtered out.
 
 **New run:** generate it, judge it against run30 and the current top 3, rank.
 
@@ -306,7 +316,8 @@ Frozen benchmark at 256 windows unless marked. "Epoch val" is the mix's own val
 | 31 | v11, **406M**, pretrain only (3.0B tok) | 1 | 2.521 | **3.649 (3.478 @1024)** | **1.774 (1.548 @1024)** | 2.560 on v2 (untuned) |
 | 32 | run 31 + posttrain_v2 | 2 | | | | 2.061 on v2 (not comparable to v1) |
 
-Ranking (section 5, prompts_v1): run 32 1089 [1056–1127], run 30 1000, run 31
-(no post-training) 847 [805–886].
+Ranking (section 5, prompts_v1, judge v2): run 32 1121 [1076–1172], run 30
+1000, run 31 (no post-training) 706 [627–772]. Gemma agreed with Opus on 93%
+of decisive pairs.
 
 Runs 26 and 27 were a speed benchmark and a crash.

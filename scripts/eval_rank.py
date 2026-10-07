@@ -18,14 +18,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from eval_common import (BASELINE, EVALS, HUMAN, PROMPT_VERSION, RUNS, VERDICTS, bootstrap_ci,
                          bradley_terry, load_prompts, pair_key, read_jsonl, to_points)
-from eval_judge import JUDGE_MODEL, JUDGE_VERSION
+from eval_judge import JUDGE_MODEL, JUDGE_VERSION, OPUS_MODEL
 
 CHECKS = ("stopped", "leak", "echo", "repeat")
 
 
-def current_verdicts():
+def current_verdicts(judge=JUDGE_MODEL):
     return [v for v in read_jsonl(VERDICTS)
-            if v["prompt_version"] == PROMPT_VERSION and v["judge_version"] == JUDGE_VERSION]
+            if v["prompt_version"] == PROMPT_VERSION and v["judge_version"] == JUDGE_VERSION
+            and v["judge"] == judge]
+
+
+def winners(verdicts):
+    """{pair_key: winning run, or None for a tie}."""
+    return {pair_key(v["prompt_id"], v["sample"], v["run_a"], v["run_b"]):
+            {"a": v["run_a"], "b": v["run_b"]}.get(v["result"]) for v in verdicts}
+
+
+def human_winners():
+    return {pair_key(h["prompt_id"], h["sample"], h["run_a"], h["run_b"]):
+            {"a": h["run_a"], "b": h["run_b"]}.get(h["pick"])
+            for h in read_jsonl(HUMAN) if h["prompt_version"] == PROMPT_VERSION}
 
 
 def check_rates(run):
@@ -47,20 +60,32 @@ def category_win_rates(verdicts, categories):
     return rates
 
 
-def human_agreement(verdicts):
-    """(agreed, compared) over pairs both you and gemma called decisively."""
-    gemma = {pair_key(v["prompt_id"], v["sample"], v["run_a"], v["run_b"]):
-             {"a": v["run_a"], "b": v["run_b"]}.get(v["result"]) for v in verdicts}
-    agreed = compared = 0
-    for h in read_jsonl(HUMAN):
-        if h["prompt_version"] != PROMPT_VERSION or h["pick"] == "tie":
+def agreement(reference, judge):
+    """Compare a judge with a reference rater on the pairs both judged.
+
+    Returns (agreed, compared, tied): agreement where both picked a winner,
+    and how often the judge tied a pair the reference had a winner for
+    (signal the judge threw away).
+    """
+    agreed = compared = tied = 0
+    for key, ref in reference.items():
+        if ref is None or key not in judge:
             continue
-        g = gemma.get(pair_key(h["prompt_id"], h["sample"], h["run_a"], h["run_b"]))
-        if g is None:
+        if judge[key] is None:
+            tied += 1
             continue
         compared += 1
-        agreed += g == {"a": h["run_a"], "b": h["run_b"]}[h["pick"]]
-    return agreed, compared
+        agreed += judge[key] == ref
+    return agreed, compared, tied
+
+
+def agreement_line(reference_name, reference, judge_name, judge):
+    agreed, compared, tied = agreement(reference, judge)
+    if not compared + tied:
+        return f"- {judge_name} vs {reference_name}: no shared pairs yet."
+    return (f"- {judge_name} vs {reference_name}: of {compared + tied} pairs where {reference_name} "
+            f"picked a winner, {judge_name} tied {tied}; on the other {compared} it agreed {agreed}"
+            + (f" ({agreed / compared:.0%})." if compared else "."))
 
 
 def main():
@@ -97,7 +122,7 @@ def main():
                     + [f"{rates[c]:.0%}" for c in CHECKS]
                     + [f"{cat_rates[run][c]:.0%}" if c in cat_rates[run] else "" for c in cats])
 
-    agreed, compared = human_agreement(verdicts)
+    gemma, opus, robert = winners(verdicts), winners(current_verdicts(OPUS_MODEL)), human_winners()
     lines = [
         f"# bobgpt ranking ({PROMPT_VERSION}, judge {JUDGE_MODEL} v{JUDGE_VERSION})",
         "",
@@ -109,8 +134,10 @@ def main():
         "|" + "---|" * len(header),
         *("| " + " | ".join(r) + " |" for r in rows),
         "",
-        (f"Gemma agreed with your blind picks on {agreed}/{compared} pairs ({agreed / compared:.0%})."
-         if compared else "No blind ratings yet (`scripts/eval_rate.py`)."),
+        "Judge agreement (Opus and Robert judge samples, blind; see docs/EVAL.md):",
+        agreement_line("Robert", robert, "Opus", opus),
+        agreement_line("Opus", opus, "gemma", gemma),
+        agreement_line("Robert", robert, "gemma", gemma),
     ]
     (EVALS / "RANKING.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))

@@ -104,3 +104,13 @@ def test_config_from_state_dict_matches_each_config():
         with torch.device("meta"):
             state = GPTModel(cfg).state_dict()
         assert config_from_state_dict(state) == {**cfg, "drop_rate": 0.0}
+
+
+# ---- judge agreement --------------------------------------------------------
+
+def test_agreement_counts_ties_separately():
+    from eval_rank import agreement
+    reference = {"p1": "run32", "p2": "run30", "p3": "run32", "p4": None}
+    judge = {"p1": "run32", "p2": "run32", "p3": None, "p4": "run30"}
+    # p1 agrees, p2 disagrees, p3 the judge tied, p4 the reference tied (skipped).
+    assert agreement(reference, judge) == (1, 2, 1)

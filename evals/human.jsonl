@@ -1,0 +1,9 @@
+{"prompt_version": "prompts_v1", "prompt_id": "greet-05", "sample": 1, "run_a": "run30", "run_b": "run31", "pick": "a"}
+{"prompt_version": "prompts_v1", "prompt_id": "feel-03", "sample": 1, "run_a": "run30", "run_b": "run31", "pick": "a"}
+{"prompt_version": "prompts_v1", "prompt_id": "code-07", "sample": 2, "run_a": "run32", "run_b": "run30", "pick": "a"}
+{"prompt_version": "prompts_v1", "prompt_id": "format-02", "sample": 1, "run_a": "run30", "run_b": "run31", "pick": "b"}
+{"prompt_version": "prompts_v1", "prompt_id": "format-03", "sample": 2, "run_a": "run32", "run_b": "run30", "pick": "b"}
+{"prompt_version": "prompts_v1", "prompt_id": "format-02", "sample": 1, "run_a": "run32", "run_b": "run31", "pick": "a"}
+{"prompt_version": "prompts_v1", "prompt_id": "multi-03", "sample": 2, "run_a": "run32", "run_b": "run31", "pick": "a"}
+{"prompt_version": "prompts_v1", "prompt_id": "code-03", "sample": 1, "run_a": "run30", "run_b": "run31", "pick": "b"}
+{"prompt_version": "prompts_v1", "prompt_id": "feel-01", "sample": 1, "run_a": "run30", "run_b": "run31", "pick": "a"}
