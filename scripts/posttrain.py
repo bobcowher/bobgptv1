@@ -15,6 +15,10 @@ from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT, POSTTRAIN_CHECKPOI
 # Post-training starts from pretrained weights: pretrain.py's output by default,
 # or any checkpoint named by INIT_CHECKPOINT (e.g. an older run's model).
 init_checkpoint = os.environ.get("INIT_CHECKPOINT", PRETRAIN_CHECKPOINT)
+# Experiments set these on the Beekeeper project so they don't overwrite the
+# checkpoint bobgpt serves (POSTTRAIN_CHECKPOINT) or change the default mix.
+mix = os.environ.get("POSTTRAIN_MIX", "posttrain_v2")
+output_checkpoint = os.environ.get("POSTTRAIN_OUT", POSTTRAIN_CHECKPOINT)
 
 # Fail loudly if the weights are missing or don't fit: fine-tuning a random
 # model would look like a run.
@@ -25,20 +29,20 @@ if not os.path.exists(init_checkpoint):
 # An INIT_CHECKPOINT from a 124M run (<= 30) needs GPT_CONFIG_124M here.
 cfg = GPT_CONFIG_406M
 
-# Q&A + chat with loss on assistant replies only (see mixes/posttrain_v2.json).
+# Q&A + chat with loss on assistant replies only (see mixes/<mix>.json).
 # Batch 4 (406M peaks ~12GB): more steps on a small dataset. That's too much for
 # the 3060 next to the API, so the Beekeeper project's 20GB minimum puts it on the 3090.
-train_loader, val_loader = make_loaders("posttrain_v2", cfg, batch_size=4)
+train_loader, val_loader = make_loaders(mix, cfg, batch_size=4)
 
 # Fresh optimizer, LR well below pretraining's 6e-4 peak: adapt the format
 # without overwriting what pretraining learned.
 model = LanguageModel(gpt_config=cfg,
                       train_loader=train_loader,
                       val_loader=val_loader,
-                      checkpoint_path=POSTTRAIN_CHECKPOINT,
+                      checkpoint_path=output_checkpoint,
                       lr=1e-4)
 model.model.load_state_dict(torch.load(init_checkpoint, map_location=model.device))
-print(f"Loaded pretrained weights from {init_checkpoint}")
+print(f"Loaded pretrained weights from {init_checkpoint}; mix {mix}; saving to {output_checkpoint}")
 
 # The number to beat: the pretrained model's assistant-token loss on the same val set.
 model.model.eval()
