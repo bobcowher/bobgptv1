@@ -5,13 +5,14 @@ Score: Bradley-Terry, run30 = 1000, 100 points ≈ 64% win rate. Overlapping 95%
 
 | run | score | 95% CI | matches | split | stopped | leak | echo | repeat | greeting | multi_turn | correction | coding | explanation | limits | format | feelings |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| run34 | 1242 | 1178–1313 | 360 | 30% | 99% | 0% | 1% | 3% | 75% | 54% | 83% | 56% | 71% | 81% | 78% | 81% |
-| run33 | 1179 | 1128–1237 | 480 | 29% | 98% | 0% | 1% | 10% | 73% | 54% | 65% | 71% | 68% | 65% | 76% | 71% |
-| run32 | 1099 | 1060–1145 | 480 | 29% | 93% | 0% | 0% | 12% | 51% | 69% | 42% | 64% | 52% | 66% | 42% | 50% |
-| run30 | 1000 | 1000–1000 | 480 | 27% | 92% | 0% | 1% | 12% | 41% | 51% | 45% | 42% | 37% | 34% | 43% | 38% |
-| run31 | 703 | 634–761 | 360 | 12% | 4% | 39% | 0% | 77% | 5% | 14% | 15% | 8% | 20% | 0% | 8% | 7% |
+| run35 | 1255 | 1195–1325 | 360 | 28% | 98% | 0% | 1% | 4% | 69% | 56% | 57% | 73% | 64% | 67% | 65% | 67% |
+| run34 | 1237 | 1176–1306 | 480 | 30% | 99% | 0% | 1% | 3% | 67% | 51% | 77% | 51% | 67% | 74% | 70% | 74% |
+| run33 | 1176 | 1125–1235 | 600 | 30% | 98% | 0% | 1% | 10% | 65% | 52% | 58% | 64% | 61% | 59% | 72% | 64% |
+| run32 | 1097 | 1059–1142 | 480 | 29% | 93% | 0% | 0% | 12% | 51% | 69% | 42% | 64% | 52% | 66% | 42% | 50% |
+| run30 | 1000 | 1000–1000 | 600 | 26% | 92% | 0% | 1% | 12% | 36% | 49% | 43% | 36% | 33% | 29% | 34% | 32% |
+| run31 | 701 | 633–760 | 360 | 12% | 4% | 39% | 0% | 77% | 5% | 14% | 15% | 8% | 20% | 0% | 8% | 7% |
 
 Judge agreement (Opus and Robert judge samples, blind; see docs/EVAL.md):
 - Opus vs Robert: of 9 pairs where Robert picked a winner, Opus tied 0; on the other 9 it agreed 6 (67%).
-- gemma vs Opus: of 100 pairs where Opus picked a winner, gemma tied 26; on the other 74 it agreed 70 (95%).
+- gemma vs Opus: of 118 pairs where Opus picked a winner, gemma tied 31; on the other 87 it agreed 81 (93%).
 - gemma vs Robert: of 9 pairs where Robert picked a winner, gemma tied 3; on the other 6 it agreed 5 (83%).

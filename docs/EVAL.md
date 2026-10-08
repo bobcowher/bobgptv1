@@ -317,10 +317,12 @@ Frozen benchmark at 256 windows unless marked. "Epoch val" is the mix's own val
 | 32 | run 31 + posttrain_v2 | 2 | | | | 2.061 on v2 (not comparable to v1) |
 | 33 | run 31 + posttrain_v3 (chat ×3) | 2 | | | | 2.060 on v2 val |
 | 34 | run 31 + posttrain_v4 (v3 + multi-turn chat round 3) | 2 | | | | 2.099 on v4 val (adds new chat) |
+| 35 | run 31 + posttrain_v5 (v4 + tutor_scripts x2) | 2 | | | | see Beekeeper log (v5 val adds scripts) |
 
-Ranking (section 5, prompts_v1, judge v2): run 34 1242 [1178–1313], run 33
-1179 [1128–1237], run 32 1099 [1060–1145], run 30 1000, run 31 (no
-post-training) 703 [634–761]. Run 34 beat run 33 45–21 (54 ties); Opus 10–6
-on a 20-pair sample. Gemma agreed with Opus on 95% of decisive pairs.
+Ranking (section 5, prompts_v1, judge v2): run 35 1255 [1195–1325], run 34
+1237 [1176–1306], run 33 1176, run 32 1097, run 30 1000, run 31 (no post-training)
+701. Run 35 vs run 34: 40–31 (49 ties), Opus 10–8 on 20 pairs; coding 12–4, the
+category tutor_scripts targeted, corrections 1–3. Gemma agreed with Opus on 93%
+of decisive pairs.
 
 Runs 26 and 27 were a speed benchmark and a crash.
