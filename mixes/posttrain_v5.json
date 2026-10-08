@@ -1,0 +1,48 @@
+{
+  "description": "posttrain_v4 plus tutor_scripts x2: tutor_qa round 4 (36 Codex batches of Python 'write me a script' Q&A, 1799 records) as its own source. Run 34 answered 'loop through 1-10' with nonsense. x2 = 4 passes at 2 epochs.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "loss_mask": true,
+  "sources": [
+    {
+      "name": "tutor_qa",
+      "repeat": 1
+    },
+    {
+      "name": "tutor_scripts",
+      "repeat": 2
+    },
+    {
+      "name": "chat",
+      "repeat": 3
+    },
+    {
+      "name": "oasst2",
+      "repeat": 1
+    },
+    {
+      "name": "python_qa",
+      "repeat": 1
+    },
+    {
+      "name": "code_qa",
+      "repeat": 1
+    },
+    {
+      "name": "linux_qa",
+      "repeat": 1
+    },
+    {
+      "name": "fineweb_edu",
+      "repeat": 1,
+      "fraction": 0.0001,
+      "val_fraction": 0
+    },
+    {
+      "name": "python_docs",
+      "repeat": 1,
+      "fraction": 0.002,
+      "val_fraction": 0
+    }
+  ]
+}

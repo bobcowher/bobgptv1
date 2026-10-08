@@ -18,7 +18,7 @@ init_checkpoint = os.environ.get("INIT_CHECKPOINT", PRETRAIN_CHECKPOINT)
 # The result always replaces the checkpoint bobgpt serves (POSTTRAIN_CHECKPOINT);
 # keep older runs by copying them to checkpoints/runNN/ first. POSTTRAIN_MIX
 # picks another mix without a code change.
-mix = os.environ.get("POSTTRAIN_MIX", "posttrain_v4")
+mix = os.environ.get("POSTTRAIN_MIX", "posttrain_v5")
 output_checkpoint = POSTTRAIN_CHECKPOINT
 
 # Fail loudly if the weights are missing or don't fit: fine-tuning a random
