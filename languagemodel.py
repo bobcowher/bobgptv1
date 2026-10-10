@@ -73,7 +73,7 @@ class LanguageModel:
 
         # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
         # The schedule needs the run length up front: num_epochs is the budget, or
-        # max_steps when set (ablation runs train a fixed token budget, then stop).
+        # max_steps when set (tuning runs train a fixed token budget, then stop).
         total_steps = max_steps or num_epochs * len(self.train_loader)
 
         def lr_factor(step):
