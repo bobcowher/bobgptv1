@@ -5,6 +5,8 @@ class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
+        torch.nn.init.normal_(self.tok_emb.weight, mean=0.0, std=0.02)
+
         self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
         self.drop_emb = nn.Dropout(cfg["drop_rate"])
 
@@ -17,6 +19,7 @@ class GPTModel(nn.Module):
         self.out_head = nn.Linear(
                 cfg["emb_dim"], cfg["vocab_size"], bias=False
                 )
+        self.out_head.weight = self.tok_emb.weight
 
     def forward(self, in_idx):
         batch_size, seq_len = in_idx.shape
@@ -29,6 +32,7 @@ class GPTModel(nn.Module):
         x = self.trf_blocks(x)
         x = self.final_norm(x)
         logits = self.out_head(x)
+
         return logits
 
 
