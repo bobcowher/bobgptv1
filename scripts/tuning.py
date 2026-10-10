@@ -12,17 +12,17 @@ from config import GPT_CONFIG_124M
 from dataset import make_loaders
 from languagemodel import LanguageModel
 
-# Architecture ablations (docs/ARCHITECTURE.md): a 124M model trained on a fixed
+# Architecture tuning runs (docs/ARCHITECTURE.md): a 124M model trained on a fixed
 # token budget of the pretrain mix, so variants compare at equal tokens.
-#   ABLATE_NAME    names the run; the checkpoint goes to data/checkpoints/ablate/<name>/
-#   ABLATE_CONFIG  JSON merged over the 124M config, e.g. '{"norm": "rms"}'
+#   TUNING_NAME    names the run; the checkpoint goes to data/checkpoints/tuning/<name>/
+#   TUNING_CONFIG  JSON merged over the 124M config, e.g. '{"norm": "rms"}'
 #   SEED           model init and data order; variants share one, the noise-floor
 #                  repeat of the baseline changes it
-#   ABLATE_TOKENS  the budget (default 300M)
-name = os.environ.get("ABLATE_NAME", "baseline")
-overrides = json.loads(os.environ.get("ABLATE_CONFIG", "{}"))
+#   TUNING_TOKENS  the budget (default 300M)
+name = os.environ.get("TUNING_NAME", "baseline")
+overrides = json.loads(os.environ.get("TUNING_CONFIG", "{}"))
 seed = int(os.environ.get("SEED", "1"))
-budget_tokens = int(float(os.environ.get("ABLATE_TOKENS", "300e6")))
+budget_tokens = int(float(os.environ.get("TUNING_TOKENS", "300e6")))
 
 # No dropout, as in pretrain.py: one pass over fresh data.
 cfg = {**GPT_CONFIG_124M, "drop_rate": 0.0, **overrides}
@@ -35,10 +35,10 @@ train_loader, val_loader = make_loaders("pretrain_v11", cfg, batch_size=batch_si
 model = LanguageModel(gpt_config=cfg,
                       train_loader=train_loader,
                       val_loader=val_loader,
-                      checkpoint_path=f"data/checkpoints/ablate/{name}/model.pth",
+                      checkpoint_path=f"data/checkpoints/tuning/{name}/model.pth",
                       lr=6e-4,  # GPT-2 small's peak
                       compile=True)
-print(f"Ablation {name}: seed {seed}, {max_steps} steps x {batch_size * cfg['context_length']} "
+print(f"Tuning run {name}: seed {seed}, {max_steps} steps x {batch_size * cfg['context_length']} "
       f"tokens = {budget_tokens:,}; config {cfg}")
 print(f"Parameters: {sum(p.numel() for p in model.model.parameters()):,}")
 
