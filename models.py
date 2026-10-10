@@ -5,9 +5,11 @@ class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
-        torch.nn.init.normal_(self.tok_emb.weight, mean=0.0, std=0.01)
+        torch.nn.init.normal_(self.tok_emb.weight, mean=0.0, std=0.02)
 
         self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
+        torch.nn.init.normal_(self.pos_emb.weight, mean=0.0, std=0.01)
+
         self.drop_emb = nn.Dropout(cfg["drop_rate"])
 
         self.trf_blocks = nn.Sequential(
