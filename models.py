@@ -13,7 +13,7 @@ class GPTModel(nn.Module):
                   for _ in range(cfg["n_layers"])]
                 )
 
-        self.final_norm = LayerNorm(cfg["emb_dim"])
+        self.final_norm = nn.RMSNorm(cfg["emb_dim"])
         self.out_head = nn.Linear(
                 cfg["emb_dim"], cfg["vocab_size"], bias=False
                 )
@@ -30,20 +30,6 @@ class GPTModel(nn.Module):
         x = self.final_norm(x)
         logits = self.out_head(x)
         return logits
-
-
-class LayerNorm(nn.Module):
-    # Same math as the hand-written version (mean/var over the last dim), as one fused
-    # kernel. Kept as a class, not nn.LayerNorm, so the scale/shift names in existing
-    # checkpoints still load.
-    def __init__(self, emb_dim):
-        super().__init__()
-        self.eps = 1e-5
-        self.scale = nn.Parameter(torch.ones(emb_dim))
-        self.shift = nn.Parameter(torch.zeros(emb_dim))
-
-    def forward(self, x):
-        return nn.functional.layer_norm(x, x.shape[-1:], self.scale, self.shift, self.eps)
 
 
 class FeedForward(nn.Module):
@@ -73,8 +59,8 @@ class TransformerBlock(nn.Module):
                 )
 
         self.ff = FeedForward(cfg)
-        self.norm1 = LayerNorm(cfg["emb_dim"])
-        self.norm2 = LayerNorm(cfg['emb_dim'])
+        self.norm1 = nn.RMSNorm(cfg["emb_dim"])
+        self.norm2 = nn.RMSNorm(cfg['emb_dim'])
         self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
 
     def forward(self, x):
