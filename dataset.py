@@ -68,20 +68,29 @@ def create_dataloader_v1(txt, batch_size=4, max_length=256,
 
 
 def _create_dataloader(dataset, batch_size=4, shuffle=True,
-                       drop_last=True, num_workers=0):
+                       drop_last=True, num_workers=0, generator=None):
     dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             drop_last=drop_last,
-            num_workers=num_workers
+            num_workers=num_workers,
+            generator=generator
             )
 
     return dataloader
 
 
-def make_loaders(mix_name, cfg, batch_size=2, num_workers=0):
-    """Loaders over a mix built by scripts/build_mix.py (data/build/<mix_name>/)."""
+def make_loaders(mix_name, cfg, batch_size=2, num_workers=0, seed=None):
+    """Loaders over a mix built by scripts/build_mix.py (data/build/<mix_name>/).
+
+    seed fixes the shuffle order with the loaders' own generators, so it doesn't
+    depend on how many random numbers model init used: ablation variants with
+    different layers still see the same batches in the same order.
+    """
+    def generator(offset):
+        return None if seed is None else torch.Generator().manual_seed(seed + offset)
+
     root = Path(__file__).resolve().parent
     build_dir = root / "data" / "build" / mix_name
     manifest_path = build_dir / "manifest.json"
@@ -121,7 +130,8 @@ def make_loaders(mix_name, cfg, batch_size=2, num_workers=0):
             batch_size=batch_size,
             drop_last=True,
             shuffle=True,
-            num_workers=num_workers
+            num_workers=num_workers,
+            generator=generator(0)
             )
 
     val_loader = _create_dataloader(
@@ -129,7 +139,8 @@ def make_loaders(mix_name, cfg, batch_size=2, num_workers=0):
             batch_size=batch_size,
             drop_last=False,
             shuffle=True,  # mid-epoch evals only read a few batches; make them a random mix
-            num_workers=num_workers
+            num_workers=num_workers,
+            generator=generator(1)
             )
 
     return train_loader, val_loader

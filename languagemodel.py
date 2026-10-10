@@ -49,11 +49,12 @@ class LanguageModel:
 
 
     def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
-              warmup_steps=2000, min_lr_ratio=0.1, save_each_eval=False):
+              warmup_steps=2000, min_lr_ratio=0.1, save_each_eval=False, max_steps=None):
 
         # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
-        # The schedule needs the run length up front: num_epochs is the budget.
-        total_steps = num_epochs * len(self.train_loader)
+        # The schedule needs the run length up front: num_epochs is the budget, or
+        # max_steps when set (ablation runs train a fixed token budget, then stop).
+        total_steps = max_steps or num_epochs * len(self.train_loader)
 
         def lr_factor(step):
             if step < warmup_steps:
@@ -114,6 +115,9 @@ class LanguageModel:
                             self.save_the_model()
                         last_eval_time, last_eval_tokens = time.time(), tokens_seen
 
+                    if global_step + 1 >= total_steps:
+                        break
+
                 epoch_train_loss = epoch_loss_sum / epoch_batch_count
                 # Full val set: this number drives checkpointing and early stopping.
                 self.model.eval()
@@ -139,6 +143,9 @@ class LanguageModel:
                     if epochs_without_improvement >= patience:
                         print(f"Early stopping after epoch {epoch+1}")
                         break
+                if global_step + 1 >= total_steps:
+                    print(f"Reached the step budget ({total_steps} steps, {tokens_seen:,} tokens)")
+                    break
         finally:
             writer.close()
 
