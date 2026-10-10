@@ -85,7 +85,7 @@ def make_loaders(mix_name, cfg, batch_size=2, num_workers=0, seed=None):
     """Loaders over a mix built by scripts/build_mix.py (data/build/<mix_name>/).
 
     seed fixes the shuffle order with the loaders' own generators, so it doesn't
-    depend on how many random numbers model init used: ablation variants with
+    depend on how many random numbers model init used: tuning variants with
     different layers still see the same batches in the same order.
     """
     def generator(offset):
