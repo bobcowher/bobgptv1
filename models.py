@@ -42,7 +42,7 @@ class GPTModel(nn.Module):
 class FeedForward(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        hidden = 64 * round(8 * cfg["emb_dim"] / 3 / 64)   # 768 -> 2048, 1024 -> 2752
+        hidden = cfg["ff_hidden"]
         self.gate_proj = nn.Linear(cfg['emb_dim'], hidden , bias=False)
         self.upscale_proj = nn.Linear(cfg['emb_dim'], hidden, bias=False)
         self.downscale_proj = nn.Linear(hidden, cfg['emb_dim'], bias=False)
