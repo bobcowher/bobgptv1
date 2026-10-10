@@ -49,5 +49,6 @@ model.train(num_epochs=1,
             eval_iter=20,
             start_context="Every effort moves you",
             warmup_steps=700,
-            max_steps=max_steps)
+            max_steps=max_steps,
+            run_name=name)
 print(f"Peak GPU memory: {torch.cuda.max_memory_allocated() / 2**30:.1f} GiB")

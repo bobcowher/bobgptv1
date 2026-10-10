@@ -19,6 +19,20 @@ PRETRAIN_CHECKPOINT = "data/checkpoints/pretrain/model.pth"
 POSTTRAIN_CHECKPOINT = "data/checkpoints/posttrain/model.pth"
 
 
+def code_version():
+    """'<branch>@<short sha>' of the checkout this is running from, '+dirty' if edited."""
+    import subprocess
+
+    def git(*args):
+        return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
+
+    branch, sha = git("rev-parse", "--abbrev-ref", "HEAD"), git("rev-parse", "--short", "HEAD")
+    if not sha:
+        return "nogit"
+    dirty = "+dirty" if git("status", "--porcelain", "--untracked-files=no") else ""
+    return f"{branch}@{sha}{dirty}"
+
+
 class LanguageModel:
 
     def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth",
@@ -49,7 +63,8 @@ class LanguageModel:
 
 
     def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
-              warmup_steps=2000, min_lr_ratio=0.1, save_each_eval=False, max_steps=None):
+              warmup_steps=2000, min_lr_ratio=0.1, save_each_eval=False, max_steps=None,
+              run_name=None):
 
         # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
         # The schedule needs the run length up front: num_epochs is the budget, or
@@ -70,7 +85,13 @@ class LanguageModel:
         best_val_loss, epochs_without_improvement = float("inf"), 0
         # Imported here so serving (which never trains) doesn't need tensorboard.
         from torch.utils.tensorboard import SummaryWriter
-        writer = SummaryWriter(log_dir="runs")
+        # TensorBoard names a run after its directory, so the label says which code ran:
+        # runs/<branch>@<sha>[_<run_name>]/.
+        version = code_version()
+        label = f"{version}_{run_name}" if run_name else version
+        writer = SummaryWriter(log_dir=os.path.join("runs", label.replace("/", "-")))
+        writer.add_text("run/code", f"{version} {run_name or ''}", 0)
+        print(f"TensorBoard run: {label}")
 
         try:
             for epoch in range(num_epochs):
