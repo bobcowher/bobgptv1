@@ -26,9 +26,14 @@ def code_version():
     def git(*args):
         return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
 
-    branch, sha = git("rev-parse", "--abbrev-ref", "HEAD"), git("rev-parse", "--short", "HEAD")
+    sha = git("rev-parse", "--short", "HEAD")
     if not sha:
         return "nogit"
+    # Beekeeper checks every branch out onto a local branch named after the project's
+    # default, so the local name can lie. The remote branches at this commit don't.
+    remote = git("for-each-ref", "--points-at", "HEAD", "--format=%(refname:lstrip=3)", "refs/remotes")
+    names = [n for n in remote.splitlines() if n != "HEAD"]
+    branch = ",".join(names) if names else git("rev-parse", "--abbrev-ref", "HEAD")
     dirty = "+dirty" if git("status", "--porcelain", "--untracked-files=no") else ""
     return f"{branch}@{sha}{dirty}"
 
