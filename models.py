@@ -21,6 +21,7 @@ class GPTModel(nn.Module):
         self.out_head = nn.Linear(
                 cfg["emb_dim"], cfg["vocab_size"], bias=False
                 )
+
         self.out_head.weight = self.tok_emb.weight
 
     def forward(self, in_idx):
@@ -41,14 +42,15 @@ class GPTModel(nn.Module):
 class FeedForward(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.layers = nn.Sequential(
-                nn.Linear(cfg["emb_dim"], 4 * cfg["emb_dim"]),
-                nn.GELU(approximate="tanh"),  # GPT-2's tanh approximation
-                nn.Linear(4 * cfg["emb_dim"], cfg["emb_dim"])
-                )
+        hidden = 64 * round(8 * cfg["emb_dim"] / 3 / 64)   # 768 -> 2048, 1024 -> 2752
+        self.gate_proj = nn.Linear(cfg['emb_dim'], hidden , bias=False)
+        self.upscale_proj = nn.Linear(cfg['emb_dim'], hidden, bias=False)
+        self.downscale_proj = nn.Linear(hidden, cfg['emb_dim'], bias=False)
 
     def forward(self, x):
-        return self.layers(x)
+        gate = nn.functional.silu(self.gate_proj(x))  # how much of each unit to let through
+        value = self.upscale_proj(x)                       # what each unit carries
+        return self.downscale_proj(gate * value)           # element-wise product, back to emb_dim
 
 
 class TransformerBlock(nn.Module):
