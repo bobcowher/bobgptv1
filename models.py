@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 
+# RMSNorm's default eps is the input dtype's machine epsilon: 1.2e-7 in fp32, 0.0078 in bf16.
+# 1e-6 is what Llama, Qwen and OLMo use.
+NORM_EPS = 1e-6
+
 class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -15,7 +19,7 @@ class GPTModel(nn.Module):
                   for _ in range(cfg["n_layers"])]
                 )
 
-        self.final_norm = nn.RMSNorm(cfg["emb_dim"])
+        self.final_norm = nn.RMSNorm(cfg["emb_dim"], eps=NORM_EPS)
         self.out_head = nn.Linear(
                 cfg["emb_dim"], cfg["vocab_size"], bias=False
                 )
@@ -62,8 +66,8 @@ class TransformerBlock(nn.Module):
                 )
 
         self.ff = FeedForward(cfg)
-        self.norm1 = nn.RMSNorm(cfg["emb_dim"])
-        self.norm2 = nn.RMSNorm(cfg['emb_dim'])
+        self.norm1 = nn.RMSNorm(cfg["emb_dim"], eps=NORM_EPS)
+        self.norm2 = nn.RMSNorm(cfg["emb_dim"], eps=NORM_EPS)
         self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
 
     def forward(self, x):
@@ -109,7 +113,16 @@ class MultiHeadAttention(nn.Module):
         self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
         self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
         self.W_value = nn.Linear(d_in, d_out, bias=qkv_bias)
-        self.out_proj = nn.Linear(d_out, d_out)
+        self.out_proj = nn.Linear(d_out, d_out, bias=False)
+        # QK-norm: RMSNorm each head's query and key, so attention logits can't
+        # grow without bound as the weights do. Only the learned scale sets them.
+        self.q_norm = nn.RMSNorm(self.head_dim, eps=NORM_EPS)
+        self.k_norm = nn.RMSNorm(self.head_dim, eps=NORM_EPS)
+        # Gated attention (Qwen, 2025): each head's output is scaled by a sigmoid
+        # of the token's input, so a head can switch itself off for that token
+        # instead of attending somewhere harmless. Zero init: every gate starts at 0.5.
+        self.gate = nn.Linear(d_in, num_heads, bias=False)
+        nn.init.zeros_(self.gate.weight)
         self.dropout = nn.Dropout(dropout)
         self.register_buffer(
                 "mask",
@@ -137,6 +150,10 @@ class MultiHeadAttention(nn.Module):
         values = values.view(b, num_tokens, self.num_heads, self.head_dim)
         queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
 
+        # Normalize before RoPE, as Qwen3 and OLMo 2 do: the rotation keeps the norm.
+        queries = self.q_norm(queries)
+        keys = self.k_norm(keys)
+
         # Permute to (b, num_heads, num_tokens, head_dim) for multi-head attention
         keys = keys.permute(0, 2, 1, 3)
         queries = queries.permute(0, 2, 1, 3)
@@ -162,6 +179,9 @@ class MultiHeadAttention(nn.Module):
 
         # Transpose back to (b, num_tokens, num_heads, head_dim)
         context_vec = context_vec.permute(0, 2, 1, 3)
+
+        # (b, num_tokens, num_heads) gates, one per head, broadcast over head_dim.
+        context_vec = context_vec * torch.sigmoid(self.gate(x)).unsqueeze(-1)
 
         context_vec = context_vec.contiguous().view(
                 b, num_tokens, self.d_out
