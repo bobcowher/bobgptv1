@@ -22,7 +22,7 @@ model = LanguageModel(gpt_config=GPT_CONFIG_406M)
 model.load_the_model(language_model_path)
 model.model.eval()
 
-context_size = model.model.pos_emb.weight.shape[0]
+context_size = model.model.context_length
 eot = model.tokenizer.eot_token
 
 

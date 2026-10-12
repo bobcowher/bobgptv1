@@ -37,14 +37,14 @@ GPT_CONFIG_838M = {
 def config_from_state_dict(state):
     """The config a checkpoint was trained with, read from its weight shapes.
 
-    Context length is pos_emb's rows; width and depth come from the weights.
+    Context length is the causal mask's size; width and depth come from the weights.
     n_heads isn't stored anywhere, but every config here uses 64-dim heads.
     ff_hidden is the SwiGLU hidden width, the gate projection's rows.
     """
     emb_dim = state["tok_emb.weight"].shape[1]
     return {
         "vocab_size": state["tok_emb.weight"].shape[0],
-        "context_length": state["pos_emb.weight"].shape[0],
+        "context_length": state["trf_blocks.0.att.mask"].shape[0],
         "emb_dim": emb_dim,
         "n_heads": emb_dim // 64,
         "ff_hidden": state["trf_blocks.0.ff.gate_proj.weight"].shape[0],

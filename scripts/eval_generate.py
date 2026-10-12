@@ -38,7 +38,7 @@ def generate(model, messages, seed):
     with torch.no_grad():
         for token_id in model.generate_streaming(idx=encoded,
                                                  max_new_tokens=MAX_TOKENS,
-                                                 context_size=model.model.pos_emb.weight.shape[0],
+                                                 context_size=model.model.context_length,
                                                  temperature=TEMPERATURE,
                                                  top_k=TOP_K,
                                                  eos_id=model.tokenizer.eot_token):

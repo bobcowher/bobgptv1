@@ -4,11 +4,9 @@ import torch.nn as nn
 class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
+        self.context_length = cfg["context_length"]  # no pos_emb to read it from
         self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
         torch.nn.init.normal_(self.tok_emb.weight, mean=0.0, std=0.02)
-
-        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
-        torch.nn.init.normal_(self.pos_emb.weight, mean=0.0, std=0.01)
 
         self.drop_emb = nn.Dropout(cfg["drop_rate"])
 
@@ -27,10 +25,7 @@ class GPTModel(nn.Module):
     def forward(self, in_idx):
         batch_size, seq_len = in_idx.shape
         tok_embeds = self.tok_emb(in_idx)
-        pos_embeds = self.pos_emb(
-                torch.arange(seq_len, device=in_idx.device)
-                )
-        x = tok_embeds + pos_embeds
+        x = tok_embeds
         x = self.drop_emb(x)
         x = self.trf_blocks(x)
         x = self.final_norm(x)
@@ -87,6 +82,18 @@ class TransformerBlock(nn.Module):
         return x
         
 
+def apply_rope(x, cos, sin):
+    """Rotate each (x[i], x[i + half]) pair of the last dim by the table's angle.
+
+    x: (b, heads, tokens, head_dim); cos/sin: (tokens, head_dim).
+    For a pair (a, b): a' = a cos - b sin, b' = a sin + b cos.
+    """
+    half = x.shape[-1] // 2
+    x1, x2 = x[..., :half], x[..., half:]
+    rotated = torch.cat((-x2, x1), dim=-1)
+    return x * cos + rotated * sin
+
+
 class MultiHeadAttention(nn.Module):
 
     def __init__(self, d_in, d_out,
@@ -110,6 +117,16 @@ class MultiHeadAttention(nn.Module):
                            diagonal=1)
                 )
 
+        # RoPE table: the angle each dim pair turns at each position, fast pairs
+        # first, down to slow ones. Split-halves pairing (dim i with dim i + head_dim/2),
+        # so both halves share an angle. Built in fp32, rebuilt rather than saved.
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, self.head_dim, 2).float() / self.head_dim))
+        positions = torch.arange(context_length).float()
+        angles = positions[:, None] * inv_freq[None, :]   # (context_length, head_dim/2)
+        angles = torch.cat([angles, angles], dim=-1)      # (context_length, head_dim)
+        self.register_buffer("cos", angles.cos(), persistent=False)
+        self.register_buffer("sin", angles.sin(), persistent=False)
+
     def forward(self, x):
         b, num_tokens, d_in = x.shape
         keys = self.W_key(x)
@@ -125,10 +142,18 @@ class MultiHeadAttention(nn.Module):
         queries = queries.permute(0, 2, 1, 3)
         values = values.permute(0, 2, 1, 3)
 
+        # Rotate queries and keys by position, so q.k depends on their distance.
+        # Values carry content and stay unrotated.
+        cos = self.cos[:num_tokens].to(queries.dtype)
+        sin = self.sin[:num_tokens].to(queries.dtype)
+        queries = apply_rope(queries, cos, sin)
+        keys = apply_rope(keys, cos, sin)
+
         # Fused causal attention: same math as scores -> causal mask -> softmax(/sqrt(d))
         # -> dropout -> @ values, but never materializes the (tokens x tokens) score
         # matrix, so memory grows linearly with context instead of quadratically.
-        # self.mask is no longer read; it stays registered so older checkpoints load.
+        # self.mask is no longer read here; it stays registered so older checkpoints load,
+        # and config_from_state_dict reads context_length from its size.
         context_vec = torch.nn.functional.scaled_dot_product_attention(
                 queries, keys, values,
                 dropout_p=self.dropout.p if self.training else 0.0,

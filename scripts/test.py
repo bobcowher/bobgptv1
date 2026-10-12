@@ -55,7 +55,7 @@ model = LanguageModel(gpt_config=config_from_state_dict(torch.load(checkpoint, m
 model.load_the_model(checkpoint)
 model.model.eval()
 
-context_size = model.model.pos_emb.weight.shape[0]
+context_size = model.model.context_length
 eot = model.tokenizer.eot_token
 
 for kind, prompts in PROMPTS.items():
