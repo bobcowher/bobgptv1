@@ -82,7 +82,10 @@ def make_optimizer(model, name, lr, weight_decay=0.1, muon_lr=0.02):
                                  fused=next(model.parameters()).is_cuda)
     if name != "muon":
         raise ValueError(f"unknown optimizer {name!r}")
-    muon = [p for p in model.trf_blocks.parameters() if p.ndim == 2]
+    # The attention gate maps to one number per head, closer to an output head
+    # than a hidden matrix, so it stays on AdamW.
+    muon = [p for name, p in model.trf_blocks.named_parameters()
+            if p.ndim == 2 and not name.endswith("att.gate.weight")]
     muon_ids = {id(p) for p in muon}
     adam = [p for p in model.parameters() if id(p) not in muon_ids]
     # AdamW group first: the training loop logs param_groups[0]'s LR, which keeps
