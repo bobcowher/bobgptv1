@@ -1,0 +1,17 @@
+{
+  "description": "pretrain_v11 with FineWeb-Edu replaced by the top ~2.4B tokens of sample-10BT by classifier score (scripts/prepare_fineweb_edu_top.py). Same val_fraction, so no v11 val page lands in this train split.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "fineweb_edu_top", "val_fraction": 0.01},
+    {"name": "github_python", "val_fraction": 0.01},
+    {"name": "github_cpp", "val_fraction": 0.01},
+    {"name": "github_rust", "val_fraction": 0.01},
+    {"name": "github_shell", "val_fraction": 0.01},
+    {"name": "python_docs"},
+    {"name": "python_books"},
+    {"name": "code_docs"},
+    {"name": "linux_manpages"},
+    {"name": "books"}
+  ]
+}
