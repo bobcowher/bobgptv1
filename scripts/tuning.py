@@ -9,8 +9,8 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import GPT_CONFIG_124M
-from dataset import make_loaders
-from languagemodel import LanguageModel
+from dataset import SwitchLoader, make_loaders
+from languagemodel import LanguageModel, wsd_decay_start
 
 # Architecture tuning runs (docs/ARCHITECTURE.md): a 124M model trained on a fixed
 # token budget of the pretrain mix, so variants compare at equal tokens.
@@ -20,11 +20,18 @@ from languagemodel import LanguageModel
 #                  repeat of the baseline changes it
 #   TUNING_TOKENS  the budget (default 300M)
 #   LR_SCHEDULE    wsd (default: hold the peak, linear decay over the last 20%) or cosine
+#   MIX            the training mix (default pretrain_v11)
+#   DECAY_MIX      a second mix for WSD's decay phase (default: none, MIX throughout)
+# Val is always pretrain_v11's, so data-mix variants compare on the same documents.
 name = os.environ.get("TUNING_NAME", "baseline")
 overrides = json.loads(os.environ.get("TUNING_CONFIG", "{}"))
 seed = int(os.environ.get("SEED", "1"))
 budget_tokens = int(float(os.environ.get("TUNING_TOKENS", "300e6")))
 lr_schedule = os.environ.get("LR_SCHEDULE", "wsd")
+mix = os.environ.get("MIX", "pretrain_v11")
+decay_mix = os.environ.get("DECAY_MIX")
+if decay_mix and lr_schedule != "wsd":
+    raise ValueError("DECAY_MIX needs LR_SCHEDULE=wsd")
 
 # No dropout, as in pretrain.py: one pass over fresh data.
 cfg = {**GPT_CONFIG_124M, "drop_rate": 0.0, **overrides}
@@ -33,6 +40,11 @@ max_steps = budget_tokens // (batch_size * cfg["context_length"])
 
 torch.manual_seed(seed)
 train_loader, val_loader = make_loaders("pretrain_v11", cfg, batch_size=batch_size, seed=seed)
+if mix != "pretrain_v11":
+    train_loader, _ = make_loaders(mix, cfg, batch_size=batch_size, seed=seed)
+if decay_mix:
+    decay_loader, _ = make_loaders(decay_mix, cfg, batch_size=batch_size, seed=seed)
+    train_loader = SwitchLoader(train_loader, decay_loader, wsd_decay_start(max_steps))
 
 model = LanguageModel(gpt_config=cfg,
                       train_loader=train_loader,
@@ -41,7 +53,7 @@ model = LanguageModel(gpt_config=cfg,
                       lr=6e-4,  # GPT-2 small's peak
                       compile=True)
 print(f"Tuning run {name}: seed {seed}, {max_steps} steps x {batch_size * cfg['context_length']} "
-      f"tokens = {budget_tokens:,}; {lr_schedule}; config {cfg}")
+      f"tokens = {budget_tokens:,}; {lr_schedule}; mix {mix}{f' then {decay_mix}' if decay_mix else ''}; config {cfg}")
 print(f"Parameters: {sum(p.numel() for p in model.model.parameters()):,}")
 
 # The epoch-end full val loss (all of v11's val set) is the number variants are
