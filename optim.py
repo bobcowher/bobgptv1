@@ -1,20 +1,23 @@
+from collections import defaultdict
+
 import torch
 
 
 @torch.compile
 def orthogonalize(G, steps=5):
-    """Approximately replace G's singular values with 1 (Newton-Schulz, in bf16).
+    """Approximately replace each matrix's singular values with 1 (Newton-Schulz, in bf16).
 
-    The quintic's coefficients trade exactness for speed: singular values land
-    roughly in [0.7, 1.2], which works as well as the exact U V^T in practice.
-    From Keller Jordan's Muon (github.com/KellerJordan/Muon).
+    G is (rows, cols) or a stack (n, rows, cols) of same-shape matrices, done in
+    one batched call. The quintic's coefficients trade exactness for speed:
+    singular values land roughly in [0.7, 1.2], which works as well as the exact
+    U V^T in practice. From Keller Jordan's Muon (github.com/KellerJordan/Muon).
     """
     a, b, c = 3.4445, -4.7750, 2.0315
     X = G.bfloat16()
-    tall = X.size(0) > X.size(1)
+    tall = X.size(-2) > X.size(-1)
     if tall:
         X = X.mT
-    X = X / (X.norm() + 1e-7)  # spectral norm <= Frobenius norm <= 1
+    X = X / (X.norm(dim=(-2, -1), keepdim=True) + 1e-7)  # spectral <= Frobenius <= 1
     for _ in range(steps):
         A = X @ X.mT
         B = b * A + c * A @ A
@@ -29,7 +32,8 @@ class MuonAdamW(torch.optim.Optimizer):
     LambdaLR schedule scales both learning rates by the same factor.
     Muon: momentum, then orthogonalize the update, so every direction in the
     matrix moves by about the same amount. Embeddings, the tied head, norms and
-    biases aren't hidden-layer matrices and stay on AdamW.
+    biases aren't hidden-layer matrices and stay on AdamW, which is torch's own
+    (fused on the GPU) fed this group's scheduled lr each step.
     """
 
     def __init__(self, param_groups):
@@ -40,39 +44,46 @@ class MuonAdamW(torch.optim.Optimizer):
                 group.setdefault("betas", (0.9, 0.999))
                 group.setdefault("eps", 1e-8)
         super().__init__(param_groups, defaults={})
+        self.adamw = {}
+        for i, group in enumerate(self.param_groups):
+            if not group["muon"]:
+                self.adamw[i] = torch.optim.AdamW(
+                    group["params"], lr=group["lr"], betas=group["betas"], eps=group["eps"],
+                    weight_decay=group["weight_decay"], fused=group["params"][0].is_cuda)
 
     @torch.no_grad()
     def step(self, closure=None):
-        for group in self.param_groups:
+        for i, group in enumerate(self.param_groups):
+            if not group["muon"]:
+                self.adamw[i].param_groups[0]["lr"] = group["lr"]
+                self.adamw[i].step()
+                continue
+
+            params = [p for p in group["params"] if p.grad is not None]
+            if not params:
+                continue
+            for p in params:
+                if not self.state[p]:
+                    self.state[p]["momentum"] = torch.zeros_like(p)
+            grads = [p.grad for p in params]
+            bufs = [self.state[p]["momentum"] for p in params]
+            torch._foreach_lerp_(bufs, grads, 1 - group["momentum"])
+            updates = torch._foreach_lerp(grads, bufs, group["momentum"])  # Nesterov
+
+            # Same-shape matrices (all the W_query's, all the up projections, ...)
+            # are orthogonalized together: 3 batched calls a step instead of 84.
+            by_shape = defaultdict(list)
+            for p, u in zip(params, updates):
+                by_shape[p.shape].append((p, u))
             lr, wd = group["lr"], group["weight_decay"]
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                state = self.state[p]
-                if group["muon"]:
-                    if not state:
-                        state["momentum"] = torch.zeros_like(p)
-                    buf = state["momentum"]
-                    buf.lerp_(p.grad, 1 - group["momentum"])
-                    update = p.grad.lerp(buf, group["momentum"])  # Nesterov
-                    update = orthogonalize(update)
-                    # Wide and tall matrices get the same per-element step size.
-                    scale = max(1, p.size(0) / p.size(1)) ** 0.5
-                    p.mul_(1 - lr * wd)
-                    p.add_(update.to(p.dtype), alpha=-lr * scale)
-                else:
-                    if not state:
-                        state["step"] = 0
-                        state["exp_avg"] = torch.zeros_like(p)
-                        state["exp_avg_sq"] = torch.zeros_like(p)
-                    state["step"] += 1
-                    beta1, beta2 = group["betas"]
-                    state["exp_avg"].lerp_(p.grad, 1 - beta1)
-                    state["exp_avg_sq"].mul_(beta2).addcmul_(p.grad, p.grad, value=1 - beta2)
-                    m_hat = state["exp_avg"] / (1 - beta1 ** state["step"])
-                    v_hat = state["exp_avg_sq"] / (1 - beta2 ** state["step"])
-                    p.mul_(1 - lr * wd)
-                    p.addcdiv_(m_hat, v_hat.sqrt().add_(group["eps"]), value=-lr)
+            for (rows, cols), pairs in by_shape.items():
+                ps = [p for p, _ in pairs]
+                ortho = orthogonalize(torch.stack([u for _, u in pairs])).to(ps[0].dtype)
+                # Wide and tall matrices get the same per-element step size.
+                scale = max(1, rows / cols) ** 0.5
+                if wd:
+                    torch._foreach_mul_(ps, 1 - lr * wd)
+                torch._foreach_add_(ps, list(ortho.unbind(0)), alpha=-lr * scale)
 
 
 def make_optimizer(model, name, lr, weight_decay=0.1, muon_lr=0.01):
