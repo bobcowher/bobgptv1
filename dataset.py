@@ -52,6 +52,26 @@ class MaskedGPTDataset(Dataset):
         return chunk[:-1], target
 
 
+class SwitchLoader:
+    """Batches from `first` for `switch_step` steps, then from `second`.
+
+    Lets the WSD decay train on a different mix from the stable phase.
+    """
+
+    def __init__(self, first, second, switch_step):
+        self.first, self.second, self.switch_step = first, second, switch_step
+
+    def __len__(self):
+        return min(self.switch_step, len(self.first)) + len(self.second)
+
+    def __iter__(self):
+        for step, batch in enumerate(self.first):
+            if step >= self.switch_step:
+                break
+            yield batch
+        yield from self.second
+
+
 def create_dataloader_v1(txt, batch_size=4, max_length=256,
                          stride=128, shuffle=True, drop_last=True,
                          num_workers=0):

@@ -1,0 +1,17 @@
+{
+  "description": "Mix for the WSD decay phase: about 50% FineWeb-Edu, 38% code, 12% docs and books (~590M tokens, about one 406M decay). Small sources repeat 2-3x. Same per-source val_fraction as pretrain_v11, so v11's val documents stay out of training.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "fineweb_edu", "fraction": 0.12, "val_fraction": 0.01},
+    {"name": "github_python", "fraction": 0.4, "val_fraction": 0.01},
+    {"name": "github_cpp", "fraction": 0.4, "val_fraction": 0.01},
+    {"name": "github_rust", "fraction": 0.6, "val_fraction": 0.01},
+    {"name": "github_shell", "fraction": 0.6, "val_fraction": 0.01},
+    {"name": "python_docs"},
+    {"name": "python_books", "repeat": 3},
+    {"name": "code_docs", "repeat": 3},
+    {"name": "linux_manpages", "repeat": 2},
+    {"name": "books", "repeat": 3}
+  ]
+}

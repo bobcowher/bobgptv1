@@ -31,6 +31,11 @@ def code_version():
     return f"{branch}@{sha}{dirty}"
 
 
+def wsd_decay_start(total_steps, decay_frac=0.2):
+    """The step where WSD's stable phase ends and the decay begins."""
+    return total_steps - int(decay_frac * total_steps)
+
+
 class LanguageModel:
 
     def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth",
@@ -75,7 +80,7 @@ class LanguageModel:
             if step < warmup_steps:
                 return (step + 1) / warmup_steps
             if lr_schedule == "wsd":
-                decay_start = total_steps - int(decay_frac * total_steps)
+                decay_start = wsd_decay_start(total_steps, decay_frac)
                 if step < decay_start:
                     return 1.0
                 progress = min(1.0, (step - decay_start) / max(1, total_steps - decay_start))
