@@ -19,14 +19,14 @@ from languagemodel import LanguageModel
 #   SEED           model init and data order; variants share one, the noise-floor
 #                  repeat of the baseline changes it
 #   TUNING_TOKENS  the budget (default 300M)
-#   OPTIMIZER      adamw (default) or muon (Muon on the blocks' matrices, AdamW on the rest)
-#   MUON_LR        Muon's peak learning rate (default 0.02)
+#   OPTIMIZER      muon (default: Muon on the blocks' matrices, AdamW on the rest) or adamw
+#   MUON_LR        Muon's peak learning rate (default 0.01; 0.005-0.02 were within noise)
 name = os.environ.get("TUNING_NAME", "baseline")
 overrides = json.loads(os.environ.get("TUNING_CONFIG", "{}"))
 seed = int(os.environ.get("SEED", "1"))
 budget_tokens = int(float(os.environ.get("TUNING_TOKENS", "300e6")))
-optimizer = os.environ.get("OPTIMIZER", "adamw")
-muon_lr = float(os.environ.get("MUON_LR", "0.02"))
+optimizer = os.environ.get("OPTIMIZER", "muon")
+muon_lr = float(os.environ.get("MUON_LR", "0.01"))
 
 # No dropout, as in pretrain.py: one pass over fresh data.
 cfg = {**GPT_CONFIG_124M, "drop_rate": 0.0, **overrides}

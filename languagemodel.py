@@ -35,7 +35,7 @@ def code_version():
 class LanguageModel:
 
     def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth",
-                 lr=0.0006, compile=False, optimizer="adamw", muon_lr=0.02):
+                 lr=0.0006, compile=False, optimizer="adamw", muon_lr=0.01):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # TF32 for any matmul still in fp32 (outside autocast): ~free speed on Ampere+.

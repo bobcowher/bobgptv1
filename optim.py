@@ -75,7 +75,7 @@ class MuonAdamW(torch.optim.Optimizer):
                     p.addcdiv_(m_hat, v_hat.sqrt().add_(group["eps"]), value=-lr)
 
 
-def make_optimizer(model, name, lr, weight_decay=0.1, muon_lr=0.02):
+def make_optimizer(model, name, lr, weight_decay=0.1, muon_lr=0.01):
     """AdamW on everything, or Muon on the blocks' matrices plus AdamW on the rest."""
     if name == "adamw":
         return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay,
@@ -91,7 +91,7 @@ def make_optimizer(model, name, lr, weight_decay=0.1, muon_lr=0.02):
     # AdamW group first: the training loop logs param_groups[0]'s LR, which keeps
     # the logged schedule comparable with the all-AdamW runs.
     # Muon gets no weight decay: Keller Jordan's default at this scale. Decoupled
-    # decay at lr 0.02 would be 33x stronger per step than AdamW's at 6e-4.
+    # decay at lr 0.01 would be 17x stronger per step than AdamW's at 6e-4.
     return MuonAdamW([
         {"params": adam, "muon": False, "lr": lr, "weight_decay": weight_decay},
         {"params": muon, "muon": True, "lr": muon_lr, "weight_decay": 0.0},
