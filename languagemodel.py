@@ -1,7 +1,6 @@
 import torch
 import tiktoken
 from models import GPTModel
-from optim import make_optimizer
 import math
 import os
 import time
@@ -35,7 +34,7 @@ def code_version():
 class LanguageModel:
 
     def __init__(self, gpt_config, train_loader=None, val_loader=None, checkpoint_path="checkpoints/model.pth",
-                 lr=0.0006, compile=False, optimizer="adamw", muon_lr=0.01):
+                 lr=0.0006, compile=False):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # TF32 for any matmul still in fp32 (outside autocast): ~free speed on Ampere+.
@@ -48,7 +47,11 @@ class LanguageModel:
         # self.model, so checkpoints have no _orig_mod. prefix and generation's
         # growing sequence lengths don't trigger recompiles.
         self.train_model = torch.compile(self.model) if compile else self.model
-        self.optimizer = make_optimizer(self.model, optimizer, lr=lr, muon_lr=muon_lr)
+        self.optimizer = torch.optim.AdamW(
+                         self.model.parameters(),
+                         lr=lr, weight_decay=0.1,
+                         fused=self.device.type == "cuda"
+                         )
         self.train_loader = train_loader
         self.val_loader  = val_loader
 

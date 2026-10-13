@@ -62,6 +62,9 @@ Skip:
 Training changes, separate from the architecture:
 - **Muon** optimizer for the 2D weight matrices (AdamW stays on embeddings and norms).
   modded-nanogpt and Kimi's Moonlight report 1.3-2x better token efficiency.
+  Tried and dropped (2026-10-13): -0.055 val per token at 124M (run 12 vs 11), but its
+  Newton-Schulz step cost 13% of throughput at 124M and 28% at 406M batch 8 (16% with
+  2x gradient accumulation), which about cancels the gain. AdamW stays.
 - **Warmup-stable-decay** learning rate schedule in place of cosine, and a higher peak
   learning rate once QK-norm is in.
 
