@@ -6,8 +6,8 @@
 Data-mix tuning runs can't be compared on their own val loss: each mix has its own
 val split. This scores every checkpoint on one fixed split (pretrain_v11 unless
 EVAL_MIX says otherwise), so a mix that helps code but hurts web text shows as both.
-build_mix.py writes val.bin source by source in the mix's order, and the manifest
-records each source's val token count, so a source's tokens are one slice.
+Each source's val documents are recovered from val.bin by replaying build_mix.py's
+shuffle (see source_slices).
 
 The split is by document id hash (build_mix.is_val), so a later mix that keeps each
 source's val_fraction never trains on these documents.
@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 import numpy as np
+import tiktoken
 import torch
 
 from config import config_from_state_dict
@@ -31,6 +32,7 @@ MIX = os.environ.get("EVAL_MIX", "pretrain_v11")
 # A cap keeps FineWeb (25M val tokens) from taking most of the time; 2M tokens
 # puts the standard error well under the differences between runs.
 MAX_TOKENS = int(float(os.environ.get("EVAL_MAX_TOKENS", "2e6")))
+EOT = tiktoken.get_encoding("gpt2").eot_token
 GROUPS = {
     "web": ("fineweb_edu",),
     "code": ("github_python", "github_cpp", "github_rust", "github_shell"),
@@ -40,15 +42,30 @@ GROUPS = {
 
 
 def source_slices(build_dir):
-    """{source: uint16 token array} in the order build_mix.py wrote them."""
+    """{source: uint16 token array} of each source's val documents.
+
+    build_mix.py shuffles documents across sources before writing val.bin, so this
+    replays its shuffle: default_rng(0) permutes the train documents, then the val
+    documents, and every document ends in one <|endoftext|>. Exact per-source token
+    counts against the manifest prove the replay matched.
+    """
     manifest = json.loads((build_dir / "manifest.json").read_text(encoding="utf-8"))
-    val = np.memmap(build_dir / "val.bin", dtype=np.uint16, mode="r")
-    slices, start = {}, 0
-    for source, stats in manifest["sources"].items():
-        end = start + stats["val_tokens"]
-        slices[source] = val[start:end]
-        start = end
-    assert start == len(val), f"manifest covers {start:,} of {len(val):,} val tokens"
+    sources = manifest["sources"]
+    rng = np.random.default_rng(0)
+    rng.permutation(sum(s["train_units"] * s["repeat"] for s in sources.values()))
+    order = rng.permutation(sum(s["val_units"] for s in sources.values()))
+    # owner[i]: the source of document i in build order (sources in mix order).
+    owner = np.repeat(np.arange(len(sources)), [s["val_units"] for s in sources.values()])
+
+    val = np.array(np.memmap(build_dir / "val.bin", dtype=np.uint16, mode="r"))
+    ends = np.flatnonzero(val == EOT) + 1
+    assert len(ends) == len(order) and ends[-1] == len(val), "val.bin doesn't match the manifest"
+    docs = np.split(val, ends[:-1])
+    slices = {}
+    for k, name in enumerate(sources):
+        # Written position p holds build-order document order[p].
+        slices[name] = np.concatenate([docs[p] for p in np.flatnonzero(owner[order] == k)])
+        assert len(slices[name]) == sources[name]["val_tokens"], f"{name}: shuffle replay failed"
     return slices
 
 
