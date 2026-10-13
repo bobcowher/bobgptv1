@@ -59,12 +59,14 @@ class LanguageModel:
 
     def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
               warmup_steps=2000, min_lr_ratio=0.1, save_each_eval=False, max_steps=None,
-              run_name=None):
+              run_name=None, grad_accum=1):
 
         # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
         # The schedule needs the run length up front: num_epochs is the budget, or
         # max_steps when set (tuning runs train a fixed token budget, then stop).
-        total_steps = max_steps or num_epochs * len(self.train_loader)
+        # grad_accum: micro-batches summed into one optimizer step. Steps, warmup,
+        # eval_freq and max_steps all count optimizer steps.
+        total_steps = max_steps or num_epochs * len(self.train_loader) // grad_accum
 
         def lr_factor(step):
             if step < warmup_steps:
@@ -92,17 +94,23 @@ class LanguageModel:
             for epoch in range(num_epochs):
                 self.model.train()
                 epoch_loss_sum, epoch_batch_count = 0.0, 0
+                micro, step_loss = 0, 0.0
 
                 for input_batch, target_batch in self.train_loader:
-                    self.optimizer.zero_grad()
                     loss = self.calc_loss_batch(input_batch, target_batch)
-                    loss.backward()
+                    (loss / grad_accum).backward()
+                    step_loss = step_loss + loss.detach()
+                    tokens_seen += input_batch.numel()
+                    micro += 1
+                    if micro < grad_accum:
+                        continue
                     self.optimizer.step()
                     scheduler.step()
-                    tokens_seen += input_batch.numel()
+                    self.optimizer.zero_grad()
                     global_step += 1
                     # .item() waits for the GPU to finish, so call it once per step.
-                    batch_loss = loss.item()
+                    batch_loss = step_loss.item() / grad_accum
+                    micro, step_loss = 0, 0.0
                     epoch_loss_sum += batch_loss
                     epoch_batch_count += 1
                     writer.add_scalar("loss/train_batch", batch_loss, global_step)
