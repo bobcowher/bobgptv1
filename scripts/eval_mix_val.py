@@ -38,6 +38,8 @@ GROUPS = {
     "code": ("github_python", "github_cpp", "github_rust", "github_shell"),
     "docs": ("python_docs", "python_books", "code_docs", "linux_manpages"),
     "books": ("books",),
+    "qa": ("se_unix", "se_askubuntu", "se_serverfault", "se_superuser",
+           "se_codereview", "se_softeng", "se_stackoverflow"),
 }
 
 
@@ -94,6 +96,8 @@ def main():
         groups = {}
         for group, sources in GROUPS.items():
             scored = [losses[s] for s in sources if s in losses]
+            if not scored:
+                continue
             groups[group] = sum(l * n for l, n in scored) / sum(n for _, n in scored)
         print(checkpoint)
         print("  " + "  ".join(f"{g} {l:.3f}" for g, l in groups.items()))
