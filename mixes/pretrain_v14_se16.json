@@ -1,0 +1,24 @@
+{
+  "description": "pretrain_v13_se at about half the StackExchange share: half of each small code/Linux site and 20% of the Stack Overflow source (~0.56B tokens, ~16% of the mix). Second point on the web-vs-Q&A trade-off. Pair with DECAY_MIX=pretrain_decay_v3.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "fineweb_edu", "val_fraction": 0.01},
+    {"name": "github_python", "val_fraction": 0.01},
+    {"name": "github_cpp", "val_fraction": 0.01},
+    {"name": "github_rust", "val_fraction": 0.01},
+    {"name": "github_shell", "val_fraction": 0.01},
+    {"name": "python_docs"},
+    {"name": "python_books"},
+    {"name": "code_docs"},
+    {"name": "linux_manpages"},
+    {"name": "books"},
+    {"name": "se_unix", "fraction": 0.5, "val_fraction": 0.01},
+    {"name": "se_askubuntu", "fraction": 0.5, "val_fraction": 0.01},
+    {"name": "se_serverfault", "fraction": 0.5, "val_fraction": 0.01},
+    {"name": "se_superuser", "fraction": 0.5, "val_fraction": 0.01},
+    {"name": "se_codereview", "fraction": 0.5, "val_fraction": 0.01},
+    {"name": "se_softeng", "fraction": 0.5, "val_fraction": 0.01},
+    {"name": "se_stackoverflow", "fraction": 0.2, "val_fraction": 0.01}
+  ]
+}
