@@ -51,7 +51,9 @@ def val_tokens(source, enc):
 
 
 @torch.no_grad()
-def score(model, tokens, batch_size=32):
+def score(model, tokens, batch_tokens=8192):
+    # Batch by tokens: 32 windows at 1024 would need 6.5GB of fp32 logits.
+    batch_size = batch_tokens // CTX
     n = (len(tokens) - 1) // CTX
     x = tokens[: n * CTX].view(n, CTX)
     y = tokens[1: n * CTX + 1].view(n, CTX)
