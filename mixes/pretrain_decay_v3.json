@@ -1,0 +1,24 @@
+{
+  "description": "pretrain_decay_v2 plus 15% of the Stack Overflow questions tagged python, c++, rust, shell, linux or git (scripts/prepare_stackexchange.py). Its val also serves as the held-out Q&A set for every StackExchange site.",
+  "val_fraction": 0.1,
+  "chunk_chars": 20000,
+  "sources": [
+    {"name": "fineweb_edu", "fraction": 0.12, "val_fraction": 0.01},
+    {"name": "github_python", "fraction": 0.4, "val_fraction": 0.01},
+    {"name": "github_cpp", "fraction": 0.4, "val_fraction": 0.01},
+    {"name": "github_rust", "fraction": 0.6, "val_fraction": 0.01},
+    {"name": "github_shell", "fraction": 0.6, "val_fraction": 0.01},
+    {"name": "python_docs"},
+    {"name": "python_books", "repeat": 3},
+    {"name": "code_docs", "repeat": 3},
+    {"name": "linux_manpages", "repeat": 2},
+    {"name": "books", "repeat": 3},
+    {"name": "se_unix", "fraction": 0.3, "val_fraction": 0.01},
+    {"name": "se_askubuntu", "fraction": 0.3, "val_fraction": 0.01},
+    {"name": "se_serverfault", "fraction": 0.3, "val_fraction": 0.01},
+    {"name": "se_superuser", "fraction": 0.3, "val_fraction": 0.01},
+    {"name": "se_codereview", "fraction": 0.3, "val_fraction": 0.01},
+    {"name": "se_softeng", "fraction": 0.3, "val_fraction": 0.01},
+    {"name": "se_stackoverflow", "fraction": 0.15, "val_fraction": 0.01}
+  ]
+}
