@@ -9,17 +9,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import GPT_CONFIG_406M
 from dataset import make_loaders
-from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT, POSTTRAIN_CHECKPOINT
+from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT
 
 
-# Post-training starts from pretrained weights: pretrain.py's output by default,
-# or any checkpoint named by INIT_CHECKPOINT (e.g. an older run's model).
-init_checkpoint = os.environ.get("INIT_CHECKPOINT", PRETRAIN_CHECKPOINT)
-# The result always replaces the checkpoint bobgpt serves (POSTTRAIN_CHECKPOINT);
-# keep older runs by copying them to checkpoints/runNN/ first. POSTTRAIN_MIX
-# picks another mix without a code change.
+# Post-training starts from pretrained weights: in a Beekeeper pipeline, the
+# pretrain step's; otherwise any checkpoint named by INIT_CHECKPOINT.
+pipeline_pretrain = os.environ.get("BEEKEEPER_STEP_PRETRAIN_DIR")
+init_checkpoint = os.environ.get("INIT_CHECKPOINT") or (
+    f"{pipeline_pretrain}/checkpoints/pretrain/model.pth" if pipeline_pretrain else PRETRAIN_CHECKPOINT)
+# Saved in the run's own directory (checkpoints/ is a Beekeeper output path), not
+# over the checkpoint bobgpt serves: deploying is copying it to POSTTRAIN_CHECKPOINT.
+# POSTTRAIN_MIX picks another mix without a code change.
 mix = os.environ.get("POSTTRAIN_MIX", "posttrain_v5")
-output_checkpoint = POSTTRAIN_CHECKPOINT
+output_checkpoint = "checkpoints/posttrain/model.pth"
 
 # Fail loudly if the weights are missing or don't fit: fine-tuning a random
 # model would look like a run.
