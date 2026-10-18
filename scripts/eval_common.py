@@ -10,6 +10,7 @@ Everything here is pure (no model, no network), so it's what the tests cover.
 
 import json
 import math
+import os
 import random
 import sys
 from collections import Counter, defaultdict
@@ -20,7 +21,9 @@ sys.path.insert(0, str(ROOT))
 
 from chat_template import ROLE_HEADERS  # noqa: E402
 
-EVALS = ROOT / "evals"
+# EVALS_DIR points the evals at a copy, so a pipeline step writes its verdicts
+# and ranking into its own run folder instead of the tracked evals/.
+EVALS = Path(os.environ.get("EVALS_DIR", ROOT / "evals"))
 RUNS = EVALS / "runs"
 VERDICTS = EVALS / "verdicts.jsonl"
 HUMAN = EVALS / "human.jsonl"

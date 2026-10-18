@@ -9,14 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import GPT_CONFIG_406M
 from dataset import make_loaders
-from languagemodel import LanguageModel, PRETRAIN_CHECKPOINT
+from languagemodel import LanguageModel
 
 
 # Post-training starts from pretrained weights: in a Beekeeper pipeline, the
-# pretrain step's; otherwise any checkpoint named by INIT_CHECKPOINT.
-pipeline_pretrain = os.environ.get("BEEKEEPER_STEP_PRETRAIN_DIR")
-init_checkpoint = os.environ.get("INIT_CHECKPOINT") or (
-    f"{pipeline_pretrain}/checkpoints/pretrain/model.pth" if pipeline_pretrain else PRETRAIN_CHECKPOINT)
+# checkpoints/ inherited from the pretrain step; otherwise any checkpoint named
+# by INIT_CHECKPOINT (data/checkpoints/pretrain/model.pth for the old default).
+init_checkpoint = os.environ.get("INIT_CHECKPOINT", "checkpoints/pretrain/model.pth")
 # Saved in the run's own directory (checkpoints/ is a Beekeeper output path), not
 # over the checkpoint bobgpt serves: deploying is copying it to POSTTRAIN_CHECKPOINT.
 # POSTTRAIN_MIX picks another mix without a code change.
@@ -55,7 +54,7 @@ model.model.train()
 
 # ~4.9M tokens per epoch. Two epochs: on run 25, epoch 3 moved val loss only
 # 2.548 -> 2.543 while train loss kept falling (run 29). The best epoch is saved.
-model.train(num_epochs=2,
+model.train(num_epochs=int(os.environ.get("POSTTRAIN_EPOCHS", 2)),  # a smoke test sets 1
             eval_freq=200,
             eval_iter=20,
             start_context="### Question\nWhat is the difference between a list and a tuple in Python?\n\n### Answer\n",

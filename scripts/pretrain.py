@@ -26,8 +26,8 @@ train_loader, _ = make_loaders(mix, cfg, batch_size=8)
 decay_loader, _ = make_loaders(decay_mix, cfg, batch_size=8)
 train_loader = SwitchLoader(train_loader, decay_loader, wsd_decay_start(max_steps))
 
-# checkpoints/ is a Beekeeper output path, linked into the run's own directory;
-# a pipeline's later steps find it at $BEEKEEPER_STEP_PRETRAIN_DIR/checkpoints/.
+# checkpoints/ is a Beekeeper output path, kept in the run's own directory;
+# a pipeline's later steps get a copy of it with inherit: [checkpoints].
 model = LanguageModel(gpt_config=cfg,
                       train_loader=train_loader,
                       val_loader=val_loader,
