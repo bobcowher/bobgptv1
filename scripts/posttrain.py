@@ -17,7 +17,7 @@ from languagemodel import LanguageModel
 # by INIT_CHECKPOINT (data/checkpoints/pretrain/model.pth for the old default).
 init_checkpoint = os.environ.get("INIT_CHECKPOINT", "checkpoints/pretrain/model.pth")
 # Saved in the run's own directory (checkpoints/ is a Beekeeper output path), not
-# over the checkpoint bobgpt serves: deploying is copying it to POSTTRAIN_CHECKPOINT.
+# over the checkpoint bobgpt serves: the pipeline's deploy step copies it there.
 # POSTTRAIN_MIX picks another mix without a code change.
 mix = os.environ.get("POSTTRAIN_MIX", "posttrain_v5")
 output_checkpoint = "checkpoints/posttrain/model.pth"

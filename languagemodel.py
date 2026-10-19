@@ -6,12 +6,6 @@ import os
 import time
 
 
-# pretrain.py writes here; posttrain.py starts from it. Under data/ so both
-# Beekeeper projects see it.
-PRETRAIN_CHECKPOINT = "data/checkpoints/pretrain/model.pth"
-POSTTRAIN_CHECKPOINT = "data/checkpoints/posttrain/model.pth"
-
-
 def code_version():
     """'<branch>@<short sha>' of the checkout this is running from, '+dirty' if edited."""
     import subprocess
@@ -67,7 +61,7 @@ class LanguageModel:
 
     def train(self, num_epochs, eval_freq, eval_iter, start_context, patience=2,
               warmup_steps=2000, min_lr_ratio=0.1, save_each_eval=False, max_steps=None,
-              run_name=None, lr_schedule="cosine", decay_frac=0.2, decay_checkpoint_path=None):
+              run_name=None, lr_schedule="cosine", decay_frac=0.2):
 
         # Linear warmup, then cosine decay to min_lr_ratio * peak over the whole run.
         # lr_schedule="wsd" (warmup-stable-decay) instead holds the peak and decays
@@ -75,9 +69,6 @@ class LanguageModel:
         # The schedule needs the run length up front: num_epochs is the budget, or
         # max_steps when set (tuning runs train a fixed token budget, then stop).
         total_steps = max_steps or num_epochs * len(self.train_loader)
-        # WSD's weights just before the decay can be decayed again on another mix
-        # (or trained further) without repeating the stable phase.
-        save_decay_start = lr_schedule == "wsd" and decay_checkpoint_path is not None
 
         def lr_factor(step):
             if step < warmup_steps:
@@ -125,9 +116,6 @@ class LanguageModel:
                     epoch_loss_sum += batch_loss
                     epoch_batch_count += 1
                     writer.add_scalar("loss/train_batch", batch_loss, global_step)
-
-                    if save_decay_start and global_step + 1 == wsd_decay_start(total_steps, decay_frac):
-                        self.save_the_model(decay_checkpoint_path)
 
                     if global_step % eval_freq == 0:
                         train_loss, val_loss = self.evaluate_model(eval_iter)

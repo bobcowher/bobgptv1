@@ -42,5 +42,4 @@ model.train(num_epochs=1,
             start_context="Every effort moves you",
             max_steps=max_steps,
             lr_schedule="wsd",
-            save_each_eval=True,  # don't lose hours to a crash
-            decay_checkpoint_path="checkpoints/pretrain/model_decay_start.pth")
+            save_each_eval=True)  # don't lose hours to a crash
